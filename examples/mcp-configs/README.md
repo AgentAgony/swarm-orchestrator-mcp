@@ -33,34 +33,7 @@ This directory contains example configurations for connecting to the Swarm MCP s
 
 ---
 
-### [`claude_desktop_local.json`](./claude_desktop_local.json)
-**Minimal setup** running Swarm locally without Docker.
-
-**Use case:** Development/testing without Docker overhead.
-
-**Installation:**
-1. Install Swarm dependencies:
-   ```bash
-   cd v:\Projects\Servers\swarm
-   pip install -r requirements.txt
-   ```
-
-2. Add to Claude Desktop config (same path as above)
-
-3. Set environment variables:
-   ```bash
-   # Windows
-   set OPENAI_API_KEY=your-key
-   set GOOGLE_API_KEY=your-key
-   
-   # Linux/Mac
-   export OPENAI_API_KEY=your-key
-   export GOOGLE_API_KEY=your-key
-   ```
-
----
-
-## � Other Client Configurations
+## � Client Configurations
 
 ### [Cursor IDE](./cursor_settings.json)
 Cursor supports MCP servers directly in its settings.
@@ -130,13 +103,6 @@ Use **`claude_desktop_local.json`** for:
 
 ## 🔍 Verifying Installation
 
-After configuring, restart Claude Desktop and check available tools:
-
-1. Open Claude Desktop
-2. Start a new conversation
-3. Type: "What MCP tools do you have access to?"
-4. You should see tools from all configured servers
-
 **Expected tools from Swarm:**
 - `process_task`
 - `get_status`
@@ -159,7 +125,7 @@ After configuring, restart Claude Desktop and check available tools:
 - Check working directory in config
 
 ### API key errors (search/indexing)
-- Set environment variables before starting Claude Desktop
+- Set environment variables before starting.
 - Or add to Docker Compose `.env` file
 - Test with: `docker exec swarm-mcp-server env | grep API_KEY`
 

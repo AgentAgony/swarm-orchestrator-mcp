@@ -249,7 +249,7 @@ def index_codebase(path: str = ".", provider: str = "auto") -> str:
     - When only keyword search is needed (works without indexing)
     
     **Prerequisites:**
-    - Set OPENAI_API_KEY or GOOGLE_API_KEY for semantic embeddings
+    - Set OPENAI_API_KEY or GEMINI_API_KEY for semantic embeddings
     - Or use provider="local" for offline embedding models (slower)
     
     **Works well with:**
@@ -383,6 +383,15 @@ def retrieve_context(query: str, top_k: int = 10) -> str:
 
 
 if __name__ == "__main__":
-    # Run the MCP server
-    logger.info("🚀 Starting Swarm MCP Server...")
-    mcp.run()
+    # Run the MCP server in SSE mode for Docker deployment
+    # Note: We bypass the fastmcp CLI to avoid the run_stdio_async() host argument bug
+    import os
+    
+    host = os.environ.get("MCP_HOST", "0.0.0.0")
+    port = int(os.environ.get("MCP_PORT", "8000"))
+    
+    logger.info(f"🚀 Starting Swarm MCP Server on {host}:{port}...")
+    logger.info("📡 Transport: HTTP/SSE (Server-Sent Events)")
+    
+    # Run in SSE mode with explicit host/port configuration
+    mcp.run(transport="sse", host=host, port=port)
