@@ -1,0 +1,11 @@
+node_modules
+.smart-coding-cache
+__pycache__
+*.pyc
+.git
+.pytest_cache
+.mutmut-cache
+.gemini
+swarm
+docker-compose.yml
+Dockerfile

@@ -1,0 +1,30 @@
+# Swarm v3.0 - Core Dependencies
+
+# Core
+pydantic>=2.9.0
+typer>=0.12.0
+filelock>=3.15.0
+rich>=13.9.0
+
+# Search Engine (API-based by default)
+google-generativeai>=0.3.0
+openai>=1.0.0
+
+# Optional: Local Vector DB (for persistence)
+# chromadb>=0.4.0
+
+# Optional: Offline Embeddings (uncomment for air-gapped environments)
+# sentence-transformers>=2.2.0
+
+# v3.0 Algorithms
+pycrdt>=0.9.0
+networkx>=3.0
+z3-solver>=4.12.0
+
+# Quality Gates
+coverage>=7.0
+mutmut>=2.4.0
+
+# Testing
+pytest>=8.3.0
+flake8>=7.1.0
