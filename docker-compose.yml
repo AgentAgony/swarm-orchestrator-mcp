@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  swarm-orchestrator:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: swarm-mcp-server
+    ports:
+      - "8000:8000"
+    volumes:
+      # Bind mount for live development
+      - .:/app
+    environment:
+      - PYTHONUNBUFFERED=1
+      # API keys (pass from host environment)
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+    command: [ "fastmcp", "run", "server.py", "--host", "0.0.0.0", "--port", "8000" ]
+    restart: unless-stopped
+    networks:
+      - swarm-network
+
+networks:
+  swarm-network:
+    driver: bridge

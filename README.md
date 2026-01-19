@@ -61,7 +61,50 @@ python orchestrator.py validate     # Run quality gates
 python orchestrator.py search "foo" # Hybrid search
 ```
 
----
+### 🐳 Docker Deployment (MCP Server)
+
+Swarm can run as a **Model Context Protocol (MCP) Server** via Docker, allowing AI agents to interact with it:
+
+**Build and Run with Docker Compose:**
+```bash
+# Set your API keys (optional, for embeddings)
+export OPENAI_API_KEY="your-key"
+export GOOGLE_API_KEY="your-key"
+
+# Start the MCP server
+docker compose up -d --build
+
+# Check logs
+docker compose logs -f swarm-orchestrator
+
+# Server runs at: http://localhost:8000
+```
+
+**MCP Tools Available:**
+- `process_task(instruction)` - Create and execute tasks
+- `get_status()` - View blackboard state
+- `search_codebase(query)` - Hybrid semantic + keyword search
+- `index_codebase(path)` - Index a codebase for search
+- `retrieve_context(query)` - HippoRAG context retrieval
+
+**Connect from Claude Desktop:**
+Add to your `claude_desktop_config.json`:
+```json
+{
+  "mcpServers": {
+    "swarm": {
+      "command": "docker",
+      "args": ["exec", "-i", "swarm-mcp-server", "fastmcp", "run", "server.py"]
+    }
+  }
+}
+```
+
+**Stop the server:**
+```bash
+docker compose down
+```
+
 
 ## 🏗 Architecture
 
