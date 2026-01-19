@@ -52,13 +52,7 @@ _indexer: Optional[CodebaseIndexer] = None
 
 _SERVER_DIR = Path(__file__).parent
 
-# Legacy resource (kept for backwards compatibility)
-@mcp.resource("swarm://docs/ai")
-def get_agent_guidance() -> str:
-    """Agent guidance for cross-tool navigation and decision heuristics (legacy)."""
-    return (_SERVER_DIR / "ai.txt").read_text()
-
-# Comprehensive AI agent documentation
+# AI agent documentation
 @mcp.resource("swarm://docs/ai/guide")
 def get_ai_agent_guide() -> str:
     """Comprehensive AI agent guide with decision trees and workflows."""
@@ -666,7 +660,9 @@ def retrieve_context(query: str, top_k: int = 10) -> str:
         return f"❌ Error: {str(e)}"
 
 
+
 if __name__ == "__main__":
+
     # Run the MCP server in SSE mode for Docker deployment
     # Note: We bypass the fastmcp CLI to avoid the run_stdio_async() host argument bug
     import os

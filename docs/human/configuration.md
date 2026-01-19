@@ -13,8 +13,44 @@ GEMINI_API_KEY=your-gemini-api-key-here
 # OpenAI (alternative)
 OPENAI_API_KEY=your-openai-api-key-here
 
+# OpenRouter (for content generation)
+OPENROUTER_API_KEY=your-openrouter-api-key-here
+
 # Legacy alias for Gemini
 GOOGLE_API_KEY=your-google-api-key-here
+```
+
+### OpenRouter Configuration (Content Generation)
+
+**Setup:**
+```bash
+export OPENROUTER_API_KEY="your-key-here"
+```
+
+**Get API Key:**
+1. Visit https://openrouter.ai/keys
+2. Create a free account
+3. Generate API key
+4. Copy and set as environment variable
+
+**Free Tier Limits:**
+- 20 requests per minute
+- 200 requests per day
+
+**Use Cases:**
+- Test data/fixture generation (`content_type="data"`)
+- Documentation prose (`content_type="documentation"`)
+- System prompt creation (`content_type="prompt"`)
+- Translation (`content_type="translation"`)
+
+**Models Used:**
+- `meta-llama/llama-3.2-3b-instruct:free` - Fast data generation
+- `meta-llama/llama-3.3-70b-instruct:free` - Quality prose
+
+**Example:**
+```python
+generate_content("Create 10 fake user profiles", content_type="data")
+generate_content("Write README intro", content_type="documentation")
 ```
 
 ### Docker Configuration

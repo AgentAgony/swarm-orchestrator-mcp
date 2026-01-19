@@ -421,10 +421,6 @@ class HybridSearch:
         return dot_product / (magnitude_a * magnitude_b)
 
 
-# Keep SemanticSearch as alias for backwards compatibility
-SemanticSearch = HybridSearch
-
-
 # ============================================================================
 # Factory Function
 # ============================================================================

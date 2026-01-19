@@ -21,6 +21,16 @@ Need to modify code?
 │
 └─ Complex refactoring/debugging?
    └─ process_task(instruction)  # Routes to algorithms
+
+Need non-coding content?
+├─ Test data, fixtures, mock JSON?
+│  └─ generate_content(prompt, content_type="data")
+│
+├─ Documentation prose, README?
+│  └─ generate_content(prompt, content_type="documentation")
+│
+└─ System prompts, translations?
+   └─ generate_content(prompt, content_type="prompt"/"translation")
 ```
 
 ---
@@ -35,6 +45,9 @@ Need to modify code?
 | Refactor code | `process_task("Refactor...")` | ~1-30s | OCC conflict detection |
 | Debug failing tests | `process_task("Debug...")` | ~1-30s | Ochiai SBFL |
 | Verify correctness | `process_task("Verify...")` | ~1-30s | Z3 symbolic execution |
+| Generate test data | `generate_content(..., "data")` | ~1-3s | Fast Llama 3.2 3B |
+| Write documentation | `generate_content(..., "documentation")` | ~2-5s | Quality Llama 3.3 70B |
+| Create prompts | `generate_content(..., "prompt")` | ~2-5s | Specialized for prompts |
 
 ---
 
@@ -277,6 +290,8 @@ process_task("Refactor auth.py to use async/await")  # Good
 | Semantic search (local) | ~50-100ms | Offline, no API |
 | HippoRAG retrieval | ~500ms-2s | AST graph + PageRank |
 | Task processing | ~1-30s | Varies by algorithm |
+| Content generation (data) | ~1-3s | Llama 3.2 3B via OpenRouter |
+| Content generation (docs) | ~2-5s | Llama 3.3 70B via OpenRouter |
 | Indexing (keyword) | ~0.2s | No embeddings |
 | Indexing (API) | ~45s | 150 chunks |
 | Indexing (local) | ~60-120s | 150 chunks |

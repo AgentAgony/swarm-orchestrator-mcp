@@ -2,7 +2,26 @@
 
 All notable changes to Project Swarm will be documented in this file.
 
+## [3.0.3] - 2026-01-19
+
+### Removed
+- **Redundant Tools**: Removed tools that duplicate native AI capabilities
+  - `generate_content` - Content generation is handled natively by AI agents
+  - `create_skill_file` - AI agents write skill files directly using filesystem tools
+  - `consult_reasoning_model` - Unnecessary self-delegation (AI already IS the reasoning model)
+  - **Legacy Files**: Cleaned up unused/temporary files
+    - `examples/` - Empty directory removed
+    - `inspect_fastmcp.py` - Temporary debugging script removed
+    - `test_active_governance.py` & `test_symbol_detection.py` - Removed (already integrated)
+    - `blackboard_schema.py` - Removed (superseded by ProjectProfile)
+  - **Impact**: ~177 lines removed, simplified codebase, zero functional loss
+  - **Rationale**: Focused Swarm on unique algorithmic capabilities (HippoRAG, OCC, CRDT, Z3, Ochiai, Debate, Voting)
+
+
+---
+
 ## [3.0.2] - 2026-01-19
+
 
 ### Changed
 - **Documentation Restructure**: Reorganized documentation into professional open-source structure
@@ -15,7 +34,7 @@ All notable changes to Project Swarm will be documented in this file.
   - Added `swarm://docs/ai/guide`, `swarm://docs/ai/tools`, `swarm://docs/ai/examples`
   - Added `swarm://docs/getting-started`, `swarm://docs/user-guide`, `swarm://docs/api-reference`, `swarm://docs/configuration`, `swarm://docs/performance`
   - Updated `swarm://docs/architecture` to point to `docs/human/architecture.md`
-  - Kept `swarm://docs/ai` (legacy ai.txt) for backwards compatibility
+  - Removed legacy `swarm://docs/ai` resource (content now in `swarm://docs/ai/guide`)
 
 ### Removed
 - **Temporary Test Files**: Removed `test_symbol_detection.py` and `test_active_governance.py`
