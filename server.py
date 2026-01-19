@@ -72,7 +72,7 @@ def get_ai_examples() -> str:
 @mcp.resource("swarm://docs/architecture")
 def get_architecture() -> str:
     """Project architecture and component overview."""
-    return (_SERVER_DIR / "docs" / "human" / "architecture.md").read_text()
+    return (_SERVER_DIR / "ARCHITECTURE.md").read_text()
 
 @mcp.resource("swarm://docs/getting-started")
 def get_getting_started() -> str:

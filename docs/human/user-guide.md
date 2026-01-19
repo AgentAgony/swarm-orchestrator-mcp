@@ -318,41 +318,6 @@ Ensure instructions are:
 - Include context about the issue
 
 
----
-
-## 7. Autonomous Self-Improvement (Toolsmith)
-
-Swarm v3.2.0 introduces the **Toolsmith**, a capability for the server to identify gaps in its own toolset and dynamically build new Python MCP tools to fill them.
-
-### How it Works
-1.  **Identification**: You (or the system via Telemetry) identify a missing capability (e.g., "calculate stats").
-2.  **Creation**: The agent uses `create_tool_file` to generate a robust Python tool in `mcp_core/tools/dynamic/`.
-3.  **Governance**:
-    *   **Permission Gate**: The agent MUST ask for your approval with an ROI justification.
-    *   **Heuristics**: The generated tool must include a "Usage Heuristics" section.
-4.  **Education**: The agent simultaneously uses `create_skill_file` to generate an **Antigravity Skill** (`.agent/skills/`), teaching your IDE agent how to use the new tool.
-5.  **Activation**: You run `restart_server()`, and the new tool is live.
-
-### Example Workflow
-
-**User**: "I constantly need to calculate the average of these list of numbers. Can you make a tool for that?"
-
-**Agent**: "I can build a `calculate_stats` tool. This would save you time on manual math. May I proceed?" -> **[Approve]**
-
-**Agent**:
-*   Creates `mcp_core/tools/dynamic/tool_stats.py`
-*   Creates `.agent/skills/CalculateStats/SKILL.md`
-*   Asks you to restart.
-
-**User**: *Restarts server*
-
-**Agent**: "I have learned the `CalculateStats` skill. I can now `calculate_stats([1, 2, 3])`."
-
-### Governance Rules
-To ensure safety and quality:
-*   **No Arbitrary Code**: Tools are reviewed before creation.
-*   **Local Only**: Tools are stored as standard Python files in your repo (transparent, git-trackable).
-*   **Telemetry**: Usage is tracked locally to monitor if the tool is actually useful.
 
 ---
 

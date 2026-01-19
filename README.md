@@ -12,9 +12,7 @@
 ## Features
 
 - **⚡ Auto-Pilot Search** - Automatically optimizes symbol queries to ~1ms (200x faster than semantic)
-- **🧬 Self-Improving** - Dynamically builds its own tools (`Toolsmith`) and teaches IDE agents how to use them (`Skills`)
 - **🧠 HippoRAG Retrieval** - AST-based knowledge graphs with Personalized PageRank for deep code analysis
-- **🛡️ Active Governance** - "Permission First" workflow for autonomous creation with Heuristics enforcement
 - **📊 Adaptive Telemetry** - Privacy-first usage tracking to identify automation gaps
 - **🔍 Hybrid Search** - Semantic + keyword search with optional embeddings (Gemini/OpenAI/Local)
 - **🐛 Ochiai SBFL** - Automated fault localization for debugging
@@ -77,7 +75,6 @@ process_task("Refactor auth.py to use async/await")
 - **[Getting Started](docs/human/getting-started.md)** - Installation & first steps
 - **[User Guide](docs/human/user-guide.md)** - Complete feature walkthrough
 - **[Algorithm Workers](docs/human/workers.md)** - OCC, SBFL, Z3, CRDT, HippoRAG
-- **[Architecture](docs/human/architecture.md)** - System design & components
 - **[API Reference](docs/human/api-reference.md)** - MCP tools & CLI commands
 - **[Configuration](docs/human/configuration.md)** - Environment setup & providers
 - **[Performance](docs/human/performance.md)** - Benchmarks & optimization
@@ -109,13 +106,11 @@ Add to your MCP configuration:
 }
 ```
 
-See [examples/mcp-configs/](examples/mcp-configs/) for more configurations.
-
 ---
 
 ## Contributing
 
-See [docs/human/contributing.md](docs/human/contributing.md) for guidelines.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ---
 

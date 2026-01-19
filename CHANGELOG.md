@@ -14,8 +14,15 @@ All notable changes to Project Swarm will be documented in this file.
     - `inspect_fastmcp.py` - Temporary debugging script removed
     - `test_active_governance.py` & `test_symbol_detection.py` - Removed (already integrated)
     - `blackboard_schema.py` - Removed (superseded by ProjectProfile)
-  - **Impact**: ~177 lines removed, simplified codebase, zero functional loss
+  - **Impact**: ~400+ lines removed, simplified codebase, zero functional loss
   - **Rationale**: Focused Swarm on unique algorithmic capabilities (HippoRAG, OCC, CRDT, Z3, Ochiai, Debate, Voting)
+
+### Documentation
+- **README.md**: Removed references to deleted features (Skills, Toolsmith, examples folder)
+- **user-guide.md**: Removed obsolete "Autonomous Self-Improvement (Toolsmith)" section
+- **api-reference.md**: Updated MCP Resource URIs to match actual endpoints
+- **server.py**: Fixed `swarm://docs/architecture` to read from root `ARCHITECTURE.md`
+
 
 
 ---

@@ -307,11 +307,18 @@ Tests search performance across different modes.
 
 Swarm exposes documentation as discoverable MCP Resources:
 
-| Resource URI | Content | Purpose |
-|--------------|---------|---------|
-| `swarm://docs/ai` | Agent guidance | Cross-tool navigation and decision heuristics |
-| `swarm://docs/architecture` | Project architecture | Component overview and design |
-| `swarm://docs/changelog` | Version history | Release notes and changes |
+| Resource URI | Content |
+|--------------|---------|
+| `swarm://docs/ai/guide` | Agent decision trees & workflows |
+| `swarm://docs/ai/tools` | Tool specifications |
+| `swarm://docs/ai/examples` | Workflow examples |
+| `swarm://docs/architecture` | System design |
+| `swarm://docs/getting-started` | Installation guide |
+| `swarm://docs/user-guide` | Feature walkthrough |
+| `swarm://docs/api-reference` | This document |
+| `swarm://docs/configuration` | Provider setup |
+| `swarm://docs/performance` | Benchmarks |
+| `swarm://docs/changelog` | Version history |
 
 **Usage:**
 ```python
@@ -319,7 +326,7 @@ Swarm exposes documentation as discoverable MCP Resources:
 list_resources()
 
 # Read resource
-read_resource("swarm://docs/ai")
+read_resource("swarm://docs/ai/guide")
 ```
 
 ---
