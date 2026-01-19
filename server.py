@@ -14,6 +14,7 @@ from fastmcp import FastMCP
 from mcp_core.orchestrator_loop import Orchestrator
 from mcp_core.swarm_schemas import Task
 from mcp_core.search_engine import CodebaseIndexer, HybridSearch, IndexConfig, get_embedding_provider
+from mcp_core.telemetry.collector import collector
 
 from pathlib import Path
 
@@ -23,6 +24,20 @@ logger = logging.getLogger(__name__)
 
 # Initialize FastMCP server
 mcp = FastMCP("Swarm Orchestrator v3.0")
+
+# Load dynamic tools
+try:
+    from mcp_core.tools.dynamic.loader import load_dynamic_tools
+    load_dynamic_tools(mcp)
+except ImportError as e:
+    logger.warning(f"Could not load dynamic tools: {e}")
+
+# Load system tools
+try:
+    from mcp_core.tools.system import register_system_tools
+    register_system_tools(mcp)
+except ImportError as e:
+    logger.warning(f"Could not load system tools: {e}")
 
 # Initialize orchestrator (lazy)
 _orchestrator: Optional[Orchestrator] = None
@@ -123,6 +138,7 @@ def get_indexer() -> CodebaseIndexer:
 
 
 @mcp.tool()
+@collector.track_tool("process_task")
 def process_task(instruction: str) -> str:
     """
     Create and process a task in the Swarm orchestrator using algorithmic workers.
@@ -233,6 +249,7 @@ def process_task(instruction: str) -> str:
 
 
 @mcp.tool()
+@collector.track_tool("get_status")
 def get_status() -> str:
     """
     Get the current status of all tasks in the Swarm blackboard.
@@ -300,6 +317,7 @@ def _is_likely_symbol(query: str) -> bool:
 
 
 @mcp.tool()
+@collector.track_tool("search_codebase")
 def search_codebase(query: str, top_k: int = 5, keyword_only: bool = False) -> str:
     """
     Search the codebase using hybrid semantic + keyword search.
@@ -438,6 +456,7 @@ def search_codebase(query: str, top_k: int = 5, keyword_only: bool = False) -> s
 
 
 @mcp.tool()
+@collector.track_tool("index_codebase")
 def index_codebase(path: str = ".", provider: str = "auto") -> str:
     """
     Index the codebase for semantic search capabilities.
@@ -545,6 +564,7 @@ def index_codebase(path: str = ".", provider: str = "auto") -> str:
 
 
 @mcp.tool()
+@collector.track_tool("retrieve_context")
 def retrieve_context(query: str, top_k: int = 10) -> str:
     """
     Use HippoRAG to retrieve relevant code context via AST graph + PageRank.

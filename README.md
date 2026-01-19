@@ -12,9 +12,11 @@
 ## Features
 
 - **⚡ Auto-Pilot Search** - Automatically optimizes symbol queries to ~1ms (200x faster than semantic)
+- **🧬 Self-Improving** - Dynamically builds its own tools (`Toolsmith`) and teaches IDE agents how to use them (`Skills`)
 - **🧠 HippoRAG Retrieval** - AST-based knowledge graphs with Personalized PageRank for deep code analysis
+- **🛡️ Active Governance** - "Permission First" workflow for autonomous creation with Heuristics enforcement
+- **📊 Adaptive Telemetry** - Privacy-first usage tracking to identify automation gaps
 - **🔍 Hybrid Search** - Semantic + keyword search with optional embeddings (Gemini/OpenAI/Local)
-- **🛡️ Active Guardrails** - Enforces best practices and rejects vague instructions
 - **🐛 Ochiai SBFL** - Automated fault localization for debugging
 - **🔒 OCC Validator** - Optimistic Concurrency Control for conflict-free edits
 - **✅ Z3 Verifier** - Symbolic execution and formal verification

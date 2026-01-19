@@ -40,6 +40,26 @@ All notable changes to Project Swarm will be documented in this file.
 
 ---
 
+## [3.2.0] - 2026-01-19
+
+### 🧬 New Features: Autonomous Improvement
+- **Toolsmith**: Swarm can now dynamically design, implement, and register its own Python MCP tools (`create_tool_file` + `loader.py`).
+- **Skill Synthesis**: Automatically generates Antigravity Skill instructions (`.agent/skills/`) to teach IDE agents how to use new tools immediately.
+- **Safe Restart**: Self-healing `restart_server` tool allows hot-reloading of new capabilities.
+- **Telemetry System**: Privacy-first, local-only usage tracking (`~/.swarm/telemetry.db`) to identify automation gaps.
+
+### 🛡️ Governance & Security
+- **Permission-First Workflow**: Autonomous tool creation requires explicit user approval ("I found a gap, may I build X?").
+- **Heuristics Enforcement**: All generated tools/skills MUST include documented usage heuristics and ROI calculations.
+- **Governance Headers**: Automatic validation of generated code standards.
+
+### 🔌 Technical
+- Added `mcp_core/tools/dynamic` for runtime tool loading.
+- Added `mcp_core/telemetry` for event buffering.
+- Updated `worker_prompts.py` with Toolsmith persona and strict governance rules.
+
+---
+
 ## [3.1.0] - 2026-01-19
 
 ### 🎯 Enhanced: Comprehensive Tool Heuristics
