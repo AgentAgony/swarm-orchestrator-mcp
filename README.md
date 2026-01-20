@@ -11,8 +11,6 @@
 
 ### 🐝 **Algorithmic Intelligence Meets Autonomous Development**
 
-*An MCP server that thinks like a computer scientist, not just an LLM*
-
 ---
 
 [![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
@@ -38,7 +36,6 @@
 
 ### 🧠 **Algorithmic Intelligence**
 - **HippoRAG**: AST-based knowledge graphs with Personalized PageRank
-- **OCC Validator**: Optimistic Concurrency Control for conflict-free edits
 - **Ochiai SBFL**: Statistical fault localization for debugging
 - **Z3 Verifier**: Formal verification using SMT solving
 - **CRDT Merger**: Conflict-Free Replicated Data Types
