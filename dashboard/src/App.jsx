@@ -1,54 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { Route, Link, useLocation } from 'wouter';
-import { LayoutDashboard, Database, Network, ListChecks, Settings, Activity } from 'lucide-react';
+import { LayoutDashboard, Database, Network, ListChecks, Settings, Activity, Book } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import './styles/design_system.css';
 import './App.css';
 
-// Placeholder components
-const Overview = () => (
-  <div className="page-content">
-    <h1 className="gradient-text">Swarm Overview</h1>
-    <div className="stats-grid">
-      <div className="glass-panel stat-card">
-        <Activity size={24} color="#6366f1" />
-        <div className="stat-value">Active</div>
-        <div className="stat-label">System Status</div>
-      </div>
-      <div className="glass-panel stat-card">
-        <ListChecks size={24} color="#a855f7" />
-        <div className="stat-value">12</div>
-        <div className="stat-label">Tasks in Queue</div>
-      </div>
-      <div className="glass-panel stat-card">
-        <Network size={24} color="#ec4899" />
-        <div className="stat-value">156</div>
-        <div className="stat-label">Nodes in Graph</div>
-      </div>
-    </div>
-    
-    <div className="glass-panel dashboard-chart">
-      <h2>Recent Task Activity</h2>
-      <div style={{height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)'}}>
-        Chart will be rendered here
-      </div>
-    </div>
-  </div>
-);
+import Overview from './views/Overview';
+import TaskBoard from './views/TaskBoard';
+import KnowledgeGraph from './views/KnowledgeGraph';
+import DocsPage from './views/DocsPage';
 
-const KnowledgeGraph = () => (
-  <div className="page-content">
-    <h1 className="gradient-text">Knowledge Graph</h1>
-    <div className="glass-panel graph-container">
-      <div style={{height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)'}}>
-        Force-directed graph will be rendered here (HippoRAG)
-      </div>
-    </div>
-  </div>
-);
+import { useSwarmData } from './hooks/useSwarmData';
 
 function App() {
   const [location] = useLocation();
+  const { data: status } = useSwarmData('/status');
+  const isDemo = status?.status === 'demo';
 
   return (
     <div className="app-container">
@@ -56,7 +23,10 @@ function App() {
       <nav className="glass-panel side-nav">
         <div className="nav-logo">
           <div className="logo-icon glass-panel">S</div>
-          <span className="logo-text">SWARM</span>
+          <div style={{display: 'flex', flexDirection: 'column'}}>
+            <span className="logo-text">SWARM</span>
+            {isDemo && <span style={{fontSize: '0.7rem', color: '#f59e0b', fontWeight: 'bold'}}>DEMO MODE</span>}
+          </div>
         </div>
         
         <ul className="nav-links">
@@ -80,7 +50,7 @@ function App() {
             <Link href="/graph">
               <a className={location === '/graph' ? 'active' : ''}>
                 <Network size={20} />
-                <span>Graph View</span>
+                <span>AI Knowledge Base</span>
               </a>
             </Link>
           </li>
@@ -89,6 +59,14 @@ function App() {
               <a className={location === '/memory' ? 'active' : ''}>
                 <Database size={20} />
                 <span>Memory</span>
+              </a>
+            </Link>
+          </li>
+          <li>
+            <Link href="/docs">
+              <a className={location === '/docs' ? 'active' : ''}>
+                <Book size={20} />
+                <span>Documentation</span>
               </a>
             </Link>
           </li>
@@ -113,14 +91,17 @@ function App() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.2 }}
+            style={{ height: '100%' }}
           >
             <Route path="/" component={Overview} />
             <Route path="/graph" component={KnowledgeGraph} />
-            <Route path="/tasks" component={() => (
-              <div className="page-content">
-                <h1 className="gradient-text">Task Management</h1>
-                <p>Track your agent tasks in real-time.</p>
-              </div>
+            <Route path="/tasks" component={TaskBoard} />
+            <Route path="/docs" component={DocsPage} />
+            <Route path="/memory" component={() => (
+               <div className="page-content">
+                <h1 className="gradient-text">Memory System</h1>
+                <p style={{color: 'var(--text-secondary)'}}>Active Context Management (Coming Soon)</p>
+               </div>
             )} />
           </motion.div>
         </AnimatePresence>

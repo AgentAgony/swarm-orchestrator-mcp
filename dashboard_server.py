@@ -43,8 +43,20 @@ async def get_status():
         "tasks_total": len(orch.state.tasks),
         "tasks_completed": len([t for t in orch.state.tasks.values() if t.status == "COMPLETED"]),
         "agent_id": "Swarm-Master-v3",
-        "memory_nodes": 0 # Placeholder for HippoRAG stats
+        "agent_id": "Swarm-Master-v3",
+        "memory_nodes": _get_graph_node_count()
     }
+
+def _get_graph_node_count():
+    try:
+        config = IndexConfig()
+        retriever = HippoRAGRetriever()
+        cache_path = os.path.join(config.root_path or os.getcwd(), ".hipporag_cache")
+        if retriever.load_graph(cache_path):
+             return retriever.graph.number_of_nodes()
+        return 0
+    except Exception:
+        return 0
 
 @app.get("/api/tasks")
 async def get_tasks():
@@ -52,8 +64,12 @@ async def get_tasks():
     return list(orch.state.tasks.values())
 
 @app.get("/api/graph")
-async def get_graph():
-    """Returns nodes and edges for force-graph visualization."""
+async def get_graph(limit: int = 500):
+    """Returns nodes and edges for force-graph visualization.
+    
+    Args:
+        limit (int): Max number of nodes to return (selected by degree centrality).
+    """
     try:
         # Load indexing config to get root path
         config = IndexConfig()
@@ -63,10 +79,23 @@ async def get_graph():
         cache_path = os.path.join(config.root_path or os.getcwd(), ".hipporag_cache")
         if not retriever.load_graph(cache_path):
              return {"nodes": [], "links": []}
+        
+        graph = retriever.graph
+        
+        # Calculate degrees for valid nodes (filtering out any strange artifacts if necessary)
+        # Using degree as a proxy for "importance" to show the most connected components
+        if graph.number_of_nodes() > limit:
+            # Sort by degree (in_degree + out_degree)
+            node_degrees = list(graph.degree())
+            node_degrees.sort(key=lambda x: x[1], reverse=True)
+            top_nodes = {node_id for node_id, _ in node_degrees[:limit]}
+        else:
+            top_nodes = set(graph.nodes())
 
-        # Convert NetworkX graph to D3 format
+        # Convert NetworkX graph to D3 format, filtering for top_nodes
         nodes = []
-        for node_id, attrs in retriever.graph.nodes(data=True):
+        for node_id in top_nodes:
+            attrs = graph.nodes[node_id]
             nodes.append({
                 "id": node_id,
                 "name": node_id.split("::")[-1],
@@ -75,12 +104,13 @@ async def get_graph():
             })
             
         links = []
-        for source, target, attrs in retriever.graph.edges(data=True):
-            links.append({
-                "source": source,
-                "target": target,
-                "type": attrs.get("type", "calls")
-            })
+        for source, target, attrs in graph.edges(data=True):
+            if source in top_nodes and target in top_nodes:
+                links.append({
+                    "source": source,
+                    "target": target,
+                    "type": attrs.get("type", "calls")
+                })
             
         return {"nodes": nodes, "links": links}
         
