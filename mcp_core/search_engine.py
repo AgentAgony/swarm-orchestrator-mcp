@@ -428,17 +428,26 @@ class HybridSearch:
 def get_embedding_provider(
     provider_type: str = "auto",
     api_key: Optional[str] = None
-) -> EmbeddingProvider:
+) -> Optional[EmbeddingProvider]:
     """
     Get an embedding provider by type.
     
     Args:
-        provider_type: "gemini", "openai", "local", or "auto" (tries in order)
+        provider_type: "gemini", "openai", "local", "keyword", or "auto" (tries in order)
         api_key: Optional API key override
     
     Returns:
-        An initialized EmbeddingProvider
+        An initialized EmbeddingProvider, or None if provider_type="keyword"
+        
+    Lite Mode (No API Keys):
+        Use provider_type="keyword" for fast, offline search without embeddings.
+        This enables exact-match and partial word matching only (~1ms).
     """
+    # Keyword-only mode (no embeddings needed)
+    if provider_type == "keyword":
+        logger.info("Running in keyword-only mode (no API keys required)")
+        return None
+    
     if provider_type == "gemini" or (provider_type == "auto" and os.environ.get("GEMINI_API_KEY")):
         try:
             return GeminiEmbedding(api_key)
@@ -463,4 +472,13 @@ def get_embedding_provider(
                 raise
             logger.warning(f"Local embeddings unavailable: {e}")
     
+    # Auto fallback to keyword-only if no providers work
+    if provider_type == "auto":
+        logger.info(
+            "No embedding providers available. Falling back to keyword-only mode.\n"
+            "For semantic search, set GEMINI_API_KEY or OPENAI_API_KEY in environment."
+        )
+        return None
+    
     raise RuntimeError("No embedding provider available. Set GEMINI_API_KEY or OPENAI_API_KEY.")
+

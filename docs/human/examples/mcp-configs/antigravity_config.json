@@ -9,68 +9,21 @@
         "fastmcp",
         "run",
         "server.py"
-      ],
-      "enabled": true,
-      "autoAllow": ["search_codebase", "get_status", "retrieve_context"]
-    },
-    "docker": {
-      "command": "docker",
-      "args": ["mcp", "gateway", "run"],
-      "enabled": true,
-      "autoAllow": ["list_containers", "logs", "inspect_container"]
-    },
-    "memory": {
-      "command": "docker",
-      "args": ["mcp", "run", "memory"],
-      "enabled": true,
-      "autoAllow": ["read_graph", "write_graph"]
+      ]
     },
     "github": {
       "command": "docker",
-      "args": ["mcp", "run", "github"],
-      "enabled": true,
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "-e",
+        "GITHUB_PERSONAL_ACCESS_TOKEN",
+        "mcp/github"
+      ],
       "env": {
         "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_TOKEN}"
       }
-    },
-    "sqlite": {
-      "command": "docker",
-      "args": ["mcp", "run", "sqlite"],
-      "enabled": true,
-      "autoAllow": ["query_database"]
-    },
-    "firecrawl": {
-      "command": "docker",
-      "args": ["mcp", "run", "firecrawl"],
-      "enabled": true,
-      "env": {
-        "FIRECRAWL_API_KEY": "${FIRECRAWL_API_KEY}"
-      }
-    },
-    "notion": {
-      "command": "docker",
-      "args": ["mcp", "run", "notion"],
-      "enabled": true,
-      "env": {
-        "NOTION_API_KEY": "${NOTION_API_KEY}"
-      }
-    },
-    "playwright": {
-      "command": "docker",
-      "args": ["mcp", "run", "playwright"],
-      "enabled": true,
-      "autoAllow": ["navigate", "screenshot", "click"]
-    },
-    "fetch": {
-      "command": "docker",
-      "args": ["mcp", "run", "fetch"],
-      "enabled": true,
-      "autoAllow": ["fetch_url"]
-    },
-    "osp-marketing": {
-      "command": "docker",
-      "args": ["mcp", "run", "osp-marketing-tools"],
-      "enabled": true
     }
   }
 }

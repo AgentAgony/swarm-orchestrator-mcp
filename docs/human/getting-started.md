@@ -93,6 +93,46 @@ See [configuration.md](configuration.md) for detailed provider setup.
 
 ---
 
+## Quick Start: Lite Mode (No API Keys)
+
+**New to Swarm? Start here!** Swarm works great without API keys using keyword-only search.
+
+### 1. Validate Environment
+
+```bash
+python orchestrator.py check
+```
+
+This checks your dependencies and suggests missing packages. If you see "Lite Mode Available", you're ready!
+
+### 2. Index & Search (Keyword-Only)
+
+```bash
+# Index without embeddings (fast, ~0.2s)
+python orchestrator.py index --provider keyword
+
+# Search for exact terms (function/class names)
+python orchestrator.py find "UserModel"
+
+# Or use search with keyword flag
+python orchestrator.py search "authenticate" --keyword
+```
+
+**Performance**: ~1ms search, works offline, zero API costs.
+
+### 3. Build AST Knowledge Graph
+
+```bash
+# HippoRAG works without API keys (analyzes code structure)
+python orchestrator.py retrieve "authentication"
+```
+
+This uses Python's built-in AST parser - no embeddings needed.
+
+**Upgrade Later**: When you want semantic search ("find error handling patterns"), just add `GEMINI_API_KEY` to your environment and reindex.
+
+---
+
 ## First Steps
 
 ### 1. Index Your Codebase
@@ -242,10 +282,13 @@ pip install -r requirements.txt
 
 | Task | Command |
 |------|---------|
+| Validate environment | `python orchestrator.py check` |
 | Index codebase | `python orchestrator.py index` |
+| Index (keyword-only) | `python orchestrator.py index --provider keyword` |
 | Search (keyword) | `python orchestrator.py search "term" --keyword` |
 | Search (semantic) | `python orchestrator.py search "concept"` |
 | Deep analysis | `python orchestrator.py retrieve "feature"` |
 | Process task | `python orchestrator.py task "instruction"` |
 | Check status | `python orchestrator.py status` |
 | Run tests | `pytest tests/` |
+

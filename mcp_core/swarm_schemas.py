@@ -99,6 +99,17 @@ class Task(BaseModel):
     requires_debate: bool = Field(default=False, description="Trigger debate engine")
     verification_required: bool = Field(default=False, description="Trigger Z3 verifier")
     tests_failing: bool = Field(default=False, description="Trigger Ochiai SBFL")
+    
+    # [v3.1: Git Workflow Flags]
+    git_commit_ready: bool = Field(default=False, description="Signal for Git workflow")
+    git_auto_push: bool = Field(default=False, description="Auto-push after commit")
+    git_create_pr: bool = Field(default=False, description="Auto-create PR/MR")
+    
+    # [v3.2: Branch & PR Management]
+    git_branch_name: Optional[str] = Field(default=None, description="Feature branch name")
+    git_base_branch: str = Field(default="main", description="Base branch for PR")
+    git_pr_title: Optional[str] = Field(default=None, description="PR title")
+    git_pr_body: Optional[str] = Field(default=None, description="PR description")
 
     feedback_log: List[str] = Field(default_factory=list)
     created_at: datetime = Field(default_factory=datetime.now)

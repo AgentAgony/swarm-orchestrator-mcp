@@ -390,12 +390,17 @@ other_merger.apply_update("doc1", update)
 
 Builds a **knowledge graph** from code structure (function calls, imports, inheritance) and uses **Personalized PageRank** to find architecturally related code.
 
+**Multi-Language Support**: HippoRAG now supports multiple programming languages via parser plugins:
+- ✅ **Python** (built-in, always available)
+- ✅ **JavaScript/TypeScript** (optional, requires Tree-sitter packages)
+- 🔮 **Future**: Go, Rust, Java (plugin system ready)
+
 ### Algorithm Theory
 
 **Graph Construction**:
 ```
-Nodes: Functions, Classes, Modules
-Edges: Calls, Imports, Inheritance
+Nodes: Functions, Classes, Modules, Interfaces (TS), Types (TS)
+Edges: Calls, Imports, Inheritance, Implements
 ```
 
 **Personalized PageRank (PPR)**:
@@ -415,11 +420,41 @@ Where:
 - Understanding code architecture
 - Finding ALL code related to a feature (multi-hop reasoning)
 - Refactoring requires full dependency context
+- Analyzing polyglot codebases (Python + JS/TS)
 
 ❌ **Don't use for:**
 - Simple function lookups (use `search_codebase` instead)
-- Non-Python codebases (AST parser is Python-only)
+- Unsupported languages (unless you add a parser plugin)
 - Quick questions (slower than semantic search)
+
+### Enabling Multi-Language Support
+
+**Python Only** (default, no extra dependencies):
+```python
+from mcp_core.algorithms import HippoRAGRetriever
+
+retriever = HippoRAGRetriever()
+# Automatically uses built-in Python AST parser
+retriever.build_graph_from_ast(".")
+```
+
+**JavaScript/TypeScript** (requires optional packages):
+```bash
+# Install Tree-sitter packages
+pip install tree-sitter tree-sitter-javascript tree-sitter-typescript
+```
+
+```python
+retriever = HippoRAGRetriever()
+# Automatically detects and loads JS/TS parsers if installed
+# INFO: Multi-language support enabled: JavaScript, TypeScript
+
+# Build graph from all supported languages
+retriever.build_graph_from_ast(".")  # Auto-detects .py, .js, .ts, .tsx
+
+# Or specify extensions manually
+retriever.build_graph_from_ast(".", extensions=[".py", ".ts"])
+```
 
 ### Example Usage
 

@@ -3,13 +3,18 @@ HippoRAG Retriever - Knowledge Graph Retrieval with Personalized PageRank
 
 Implements GraphRAG from v3.0 spec Section 5.3.
 Builds knowledge graphs from AST and uses PPR for deep context retrieval.
+
+Supports multiple languages via parser plugins:
+- Python (built-in ast module, always available)
+- JavaScript/TypeScript (optional tree-sitter packages)
+- Future: Go, Rust, Java via same plugin system
 """
 
-import ast
 import logging
 from pathlib import Path
-from typing import List, Dict, Set, Optional, TYPE_CHECKING
-from dataclasses import dataclass
+from typing import List, Dict, Optional, TYPE_CHECKING
+
+from mcp_core.algorithms.parsers import ParserRegistry, ASTNode
 
 if TYPE_CHECKING:
     import networkx as nx
@@ -27,6 +32,10 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
+
+# Note: ASTNode is now imported from parsers module
+# ContextChunk is kept for backward compatibility in retrieval results
+from dataclasses import dataclass
 
 @dataclass
 class ContextChunk:
@@ -46,10 +55,13 @@ class HippoRAGRetriever:
     
     Mimics human associative memory by traversing structural relationships
     in code (calls, imports, inheritance) to find relevant context.
+    
+    Supports multiple languages via parser plugins. Python is always available,
+    with optional Tree-sitter support for JavaScript, TypeScript, and more.
     """
     
     def __init__(self):
-        """Initialize retriever with empty graph"""
+        """Initialize retriever with parser registry and empty graph"""
         if not NETWORKX_AVAILABLE:
             raise ImportError(
                 "networkx is required for HippoRAG. "
@@ -58,18 +70,27 @@ class HippoRAGRetriever:
         
         self.graph: Optional['nx.DiGraph'] = None
         self.node_metadata: Dict[str, Dict] = {}
+        
+        # Initialize parser registry (Python always available)
+        self.parser_registry = ParserRegistry()
+        
+        # Log supported languages
+        langs = self.parser_registry.supported_languages()
+        logger.info(f"HippoRAG initialized with language support: {', '.join(langs)}")
     
     def build_graph_from_ast(
         self,
         codebase_path: str,
-        extensions: List[str] = [".py"]
+        extensions: Optional[List[str]] = None
     ) -> 'nx.DiGraph':
         """
         Extract function calls, imports, and class inheritance from AST.
         
+        Now supports multiple languages via parser plugins.
+        
         Args:
             codebase_path: Root directory of codebase
-            extensions: File extensions to analyze
+            extensions: File extensions to analyze (auto-detects supported if None)
             
         Returns:
             Directed graph with code entities as nodes
@@ -77,21 +98,35 @@ class HippoRAGRetriever:
         graph = nx.DiGraph()
         base_path = Path(codebase_path)
         
-        # Scan Python files
-        py_files = []
+        # Auto-detect supported extensions if not specified
+        if extensions is None:
+            extensions = self.parser_registry.supported_extensions()
+            logger.info(f"Auto-detected language support: {extensions}")
+        
+        # Scan files with supported extensions
+        files = []
         for ext in extensions:
-            py_files.extend(base_path.rglob(f"*{ext}"))
+            files.extend(base_path.rglob(f"*{ext}"))
         
-        logger.info(f"Building AST graph from {len(py_files)} files")
+        logger.info(f"Building AST graph from {len(files)} files")
         
-        for file_path in py_files:
-            try:
-                self._process_file(graph, file_path)
-            except Exception as e:
-                logger.warning(f"Failed to process {file_path}: {e}")
-                continue
+        # Process each file with appropriate parser
+        for file_path in files:
+            parser = self.parser_registry.get_parser_for_file(str(file_path))
+            if parser:
+                try:
+                    self._process_file_with_parser(graph, file_path, parser)
+                except Exception as e:
+                    logger.warning(f"[{parser.language_name}] Failed to process {file_path}: {e}")
+                    continue
+            else:
+                logger.debug(f"No parser found for {file_path}, skipping")
         
         self.graph = graph
+        
+        # Create cross-file API edges (Frontend → Backend)
+        self._create_api_edges(graph)
+        
         logger.info(
             f"Graph built: {graph.number_of_nodes()} nodes, "
             f"{graph.number_of_edges()} edges"
@@ -99,108 +134,99 @@ class HippoRAGRetriever:
         
         return graph
     
-    def _process_file(self, graph: 'nx.DiGraph', file_path: Path) -> None:
+    def _process_file_with_parser(
+        self, 
+        graph: 'nx.DiGraph', 
+        file_path: Path,
+        parser
+    ) -> None:
         """
-        Parse a single file and add nodes/edges to graph.
+        Parse a single file using appropriate language parser.
         
         Args:
             graph: NetworkX graph to populate
-            file_path: Path to Python file
+            file_path: Path to source file
+            parser: LanguageParser instance
         """
         with open(file_path, 'r', encoding='utf-8') as f:
             source = f.read()
         
-        try:
-            tree = ast.parse(source, filename=str(file_path))
-        except SyntaxError:
-            return
-        
         rel_path = str(file_path)
         
-        # Extract top-level entities
-        for node in ast.walk(tree):
-            if isinstance(node, ast.FunctionDef):
-                self._add_function_node(graph, node, rel_path, source)
-            elif isinstance(node, ast.ClassDef):
-                self._add_class_node(graph, node, rel_path, source)
+        # Parse file into ASTNode objects
+        try:
+            ast_nodes = parser.parse_file(rel_path, source)
+        except Exception as e:
+            logger.debug(f"Parser error in {file_path}: {e}")
+            return
+        
+        # Add nodes and edges to graph
+        for ast_node in ast_nodes:
+            self._add_ast_node(graph, ast_node)
     
-    def _add_function_node(
+    def _add_ast_node(
         self,
         graph: 'nx.DiGraph',
-        node: ast.FunctionDef,
-        file_path: str,
-        source: str
+        ast_node: ASTNode
     ) -> None:
-        """Add function node and extract call edges"""
-        func_name = f"{file_path}::{node.name}"
+        """
+        Add ASTNode to graph with edges for calls, inheritance, and JSX rendering.
         
-        # Add node
-        graph.add_node(
-            func_name,
-            type="function",
-            file=file_path,
-            line=node.lineno
-        )
+        Args:
+            graph: NetworkX graph to populate
+            ast_node: Parsed AST node from language parser
+        """
+        node_id = f"{ast_node.file_path}::{ast_node.name}"
+        
+        # Add node to graph with framework metadata
+        node_attrs = {
+            "type": ast_node.node_type,
+            "file": ast_node.file_path,
+            "line": ast_node.start_line
+        }
+        
+        if ast_node.framework_role:
+            node_attrs["framework"] = ast_node.framework_role
+        
+        graph.add_node(node_id, **node_attrs)
         
         # Store metadata for retrieval
-        self.node_metadata[func_name] = {
-            "file_path": file_path,
-            "node_name": node.name,
-            "node_type": "function",
-            "start_line": node.lineno,
-            "end_line": node.end_lineno or node.lineno,
-            "content": self._extract_source(source, node)
+        self.node_metadata[node_id] = {
+            "file_path": ast_node.file_path,
+            "node_name": ast_node.name,
+            "node_type": ast_node.node_type,
+            "start_line": ast_node.start_line,
+            "end_line": ast_node.end_line,
+            "content": ast_node.content
         }
         
-        # Extract function calls
-        for child in ast.walk(node):
-            if isinstance(child, ast.Call):
-                if isinstance(child.func, ast.Name):
-                    called_name = child.func.id
-                    # Add edge: this function calls another
-                    target = f"{file_path}::{called_name}"
-                    graph.add_edge(func_name, target, type="calls")
+        # Add framework metadata if present
+        if ast_node.metadata:
+            self.node_metadata[node_id]["metadata"] = ast_node.metadata
+        
+        # Store API calls and routes for later edge creation
+        if ast_node.api_calls:
+            self.node_metadata[node_id]["api_calls"] = ast_node.api_calls
+        
+        if ast_node.api_route:
+            self.node_metadata[node_id]["api_route"] = ast_node.api_route
+        
+        # Add call edges
+        for called_name in ast_node.calls:
+            target = f"{ast_node.file_path}::{called_name}"
+            graph.add_edge(node_id, target, type="calls")
+        
+        # Add inheritance edges
+        for parent_name in ast_node.inherits:
+            target = f"{ast_node.file_path}::{parent_name}"
+            graph.add_edge(node_id, target, type="inherits")
+        
+        # Add JSX rendering edges (React components)
+        for rendered_component in ast_node.renders:
+            target = f"{ast_node.file_path}::{rendered_component}"
+            graph.add_edge(node_id, target, type="renders")
     
-    def _add_class_node(
-        self,
-        graph: 'nx.DiGraph',
-        node: ast.ClassDef,
-        file_path: str,
-        source: str
-    ) -> None:
-        """Add class node and extract inheritance edges"""
-        class_name = f"{file_path}::{node.name}"
-        
-        # Add node
-        graph.add_node(
-            class_name,
-            type="class",
-            file=file_path,
-            line=node.lineno
-        )
-        
-        self.node_metadata[class_name] = {
-            "file_path": file_path,
-            "node_name": node.name,
-            "node_type": "class",
-            "start_line": node.lineno,
-            "end_line": node.end_lineno or node.lineno,
-            "content": self._extract_source(source, node)
-        }
-        
-        # Extract base classes
-        for base in node.bases:
-            if isinstance(base, ast.Name):
-                parent_name = f"{file_path}::{base.id}"
-                graph.add_edge(class_name, parent_name, type="inherits")
-    
-    def _extract_source(self, source: str, node: ast.AST) -> str:
-        """Extract source code for AST node"""
-        lines = source.splitlines()
-        start = node.lineno - 1
-        end = node.end_lineno if hasattr(node, 'end_lineno') else node.lineno
-        
-        return "\n".join(lines[start:end])
+
     
     def retrieve_context(
         self,
@@ -312,3 +338,63 @@ class HippoRAGRetriever:
                     self.graph.add_edge(source, target, type="related_to")
         
         logger.info(f"Added {len(entities)} semantic edges")
+    
+    def _create_api_edges(self, graph: 'nx.DiGraph') -> None:
+        """
+        Create cross-file edges connecting frontend API calls to backend handlers.
+        
+        Maps fetch('/api/users') in JavaScript to @app.get('/api/users') in Python.
+        """
+        # Build index of routes → handler node IDs
+        route_handlers = {}
+        for node_id, meta in self.node_metadata.items():
+            api_route = meta.get('api_route')
+            if api_route:
+                normalized = self._normalize_route(api_route)
+                route_handlers[normalized] = node_id
+        
+        if not route_handlers:
+            return  # No backend routes found
+        
+        # Connect frontend callers to backend handlers
+        api_edge_count = 0
+        for node_id, meta in self.node_metadata.items():
+            api_calls = meta.get('api_calls', [])
+            for api_url in api_calls:
+                normalized = self._normalize_route(api_url)
+                
+                if normalized in route_handlers:
+                    handler_id = route_handlers[normalized]
+                    graph.add_edge(node_id, handler_id, type="calls_api")
+                    api_edge_count += 1
+        
+        if api_edge_count > 0:
+            logger.info(f"Created {api_edge_count} API edges (frontend → backend)")
+    
+    def _normalize_route(self, route: str) -> str:
+        """
+        Normalize API route for matching.
+        
+        Examples:
+        - '/api/users/123' → '/api/users/:id'
+        - '/api/users?page=1' → '/api/users'
+        - '/api/users/' → '/api/users'
+        """
+        import re
+        
+        # Remove trailing slash
+        route = route.rstrip('/')
+        
+        # Remove query parameters
+        route = route.split('?')[0]
+        
+        # Replace numeric segments with :id placeholder
+        # /api/users/123 → /api/users/:id
+        route = re.sub(r'/\d+', '/:id', route)
+        
+        # Replace UUID segments with :id
+        # /api/users/abc-123-def → /api/users/:id
+        route = re.sub(r'/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}', '/:id', route, flags=re.IGNORECASE)
+        
+        return route
+

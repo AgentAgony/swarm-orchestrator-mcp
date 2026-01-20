@@ -12,7 +12,7 @@
 ## Features
 
 - **⚡ Auto-Pilot Search** - Automatically optimizes symbol queries to ~1ms (200x faster than semantic)
-- **🧠 HippoRAG Retrieval** - AST-based knowledge graphs with Personalized PageRank for deep code analysis
+- **🧠 HippoRAG Retrieval** - AST-based knowledge graphs with Personalized PageRank for deep code analysis (Python, JavaScript, TypeScript)
 - **📊 Adaptive Telemetry** - Privacy-first usage tracking to identify automation gaps
 - **🔍 Hybrid Search** - Semantic + keyword search with optional embeddings (Gemini/OpenAI/Local)
 - **🐛 Ochiai SBFL** - Automated fault localization for debugging

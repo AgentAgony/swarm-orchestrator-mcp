@@ -92,10 +92,11 @@ def validate() -> None:
 @app.command()
 def index(
     path: str = typer.Option(".", help="Path to codebase to index"),
-    provider: str = typer.Option("auto", help="Embedding provider: gemini, openai, local, auto")
+    provider: str = typer.Option("auto", help="Embedding provider: gemini, openai, local, keyword, auto")
 ) -> None:
     """
     Index the codebase for semantic search.
+    Use 'keyword' provider for fast, offline indexing without embeddings.
     """
     console.print(f"📚 Indexing codebase at: {path}")
     try:
@@ -436,6 +437,143 @@ def benchmark() -> None:
     except Exception as e:
         console.print(f"[bold red]Error: {e}[/bold red]")
         raise typer.Exit(code=1)
+
+
+@app.command()
+def check() -> None:
+    """
+    Validate environment: check dependencies, API keys, and configuration.
+    Helps identify missing requirements before running Swarm commands.
+    """
+    console.print("[bold]🔍 Checking Swarm Environment...[/bold]\n")
+    
+    issues = []
+    warnings = []
+    
+    # Check: Core Dependencies
+    console.print("[cyan]Core Dependencies:[/cyan]")
+    core_deps = [
+        ("typer", "CLI framework"),
+        ("rich", "Terminal UI"),
+    ]
+    
+    for package, description in core_deps:
+        try:
+            __import__(package)
+            console.print(f"  ✅ {package} - {description}")
+        except ImportError:
+            console.print(f"  ❌ {package} - {description}")
+            issues.append(f"Missing core dependency: {package}")
+    
+    # Check: Optional Algorithm Dependencies
+    console.print("\n[cyan]Algorithm Workers:[/cyan]")
+    algo_deps = [
+        ("networkx", "HippoRAG (GraphRAG)", True),
+        ("coverage", "Ochiai SBFL (Fault Localization)", False),
+        ("z3", "Z3 Verifier (Symbolic Execution)", False),
+    ]
+    
+    for package, description, required in algo_deps:
+        try:
+            __import__(package)
+            console.print(f"  ✅ {package} - {description}")
+        except ImportError:
+            if required:
+                console.print(f"  ❌ {package} - {description} [bold red](REQUIRED)[/bold red]")
+                issues.append(f"Install {package}: pip install {package}")
+            else:
+                console.print(f"  ⚠️  {package} - {description} [dim](optional)[/dim]")
+                warnings.append(f"{description} unavailable (install: pip install {package})")
+    
+    # Check: Embedding Providers (optional)
+    console.print("\n[cyan]Embedding Providers (Optional):[/cyan]")
+    
+    # Gemini
+    has_gemini_key = bool(os.environ.get("GEMINI_API_KEY"))
+    try:
+        import google.generativeai
+        has_gemini_pkg = True
+    except ImportError:
+        has_gemini_pkg = False
+    
+    if has_gemini_key and has_gemini_pkg:
+        console.print("  ✅ Gemini - API key set, package installed")
+    elif has_gemini_key:
+        console.print("  ⚠️  Gemini - API key set, but package missing")
+        console.print("     Install: pip install google-generativeai")
+    else:
+        console.print("  ⚪ Gemini - Not configured [dim](optional)[/dim]")
+    
+    # OpenAI
+    has_openai_key = bool(os.environ.get("OPENAI_API_KEY"))
+    try:
+        import openai
+        has_openai_pkg = True
+    except ImportError:
+        has_openai_pkg = False
+    
+    if has_openai_key and has_openai_pkg:
+        console.print("  ✅ OpenAI - API key set, package installed")
+    elif has_openai_key:
+        console.print("  ⚠️  OpenAI - API key set, but package missing")
+        console.print("     Install: pip install openai")
+    else:
+        console.print("  ⚪ OpenAI - Not configured [dim](optional)[/dim]")
+    
+    # Local embeddings
+    try:
+        import sentence_transformers
+        console.print("  ✅ Local - sentence-transformers installed")
+    except ImportError:
+        console.print("  ⚪ Local - Not installed [dim](optional)[/dim]")
+    
+    # Check: Tree-sitter for multi-language support
+    console.print("\n[cyan]Multi-Language Support (Optional):[/cyan]")
+    try:
+        import tree_sitter
+        import tree_sitter_javascript
+        import tree_sitter_typescript
+        console.print("  ✅ JavaScript/TypeScript - Tree-sitter parsers available")
+    except ImportError:
+        console.print("  ⚪ JavaScript/TypeScript - Not installed [dim](Python-only mode)[/dim]")
+        console.print("     Install: pip install tree-sitter tree-sitter-javascript tree-sitter-typescript")
+    
+    # Summary
+    console.print("\n" + "="*60)
+    
+    if not issues and not warnings:
+        console.print(Panel(
+            "[bold green]✅ Environment is fully configured![/bold green]\n\n"
+            "All core dependencies are installed.\n"
+            "Optional features available as needed.",
+            title="Status: Ready",
+            border_style="green"
+        ))
+    elif issues:
+        console.print(Panel(
+            f"[bold red]❌ {len(issues)} Critical Issue(s) Found[/bold red]\n\n" +
+            "\n".join(f"• {issue}" for issue in issues),
+            title="Status: Needs Attention",
+            border_style="red"
+        ))
+        console.print("\n[yellow]Fix these issues, then run 'check' again.[/yellow]")
+        raise typer.Exit(code=1)
+    else:
+        console.print(Panel(
+            f"[bold yellow]⚠️  {len(warnings)} Optional Feature(s) Unavailable[/bold yellow]\n\n" +
+            "\n".join(f"• {w}" for w in warnings) +
+            "\n\n[dim]Core functionality works. Install optional packages as needed.[/dim]",
+            title="Status: Functional (Lite Mode)",
+            border_style="yellow"
+        ))
+    
+    # Lite Mode Info
+    if not has_gemini_key and not has_openai_key:
+        console.print("\n[bold cyan]💡 Lite Mode Available:[/bold cyan]")
+        console.print("  No API keys detected. Swarm can run in keyword-only mode:")
+        console.print("  • python orchestrator.py index --provider keyword")
+        console.print("  • python orchestrator.py search --keyword 'MyFunction'")
+        console.print("  • Fast (~1ms), offline, zero-cost search")
 
 
 if __name__ == "__main__":

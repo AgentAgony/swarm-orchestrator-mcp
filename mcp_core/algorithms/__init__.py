@@ -12,6 +12,15 @@ from mcp_core.algorithms.voting_consensus import WeightedVotingConsensus, Vote, 
 from mcp_core.algorithms.debate_engine import DebateEngine, DebateState, Critique
 from mcp_core.algorithms.z3_verifier import Z3Verifier, VerificationResult
 from mcp_core.algorithms.ochiai_localizer import OchiaiLocalizer, CoverageSpectrum
+from mcp_core.algorithms.git_worker import GitWorker
+
+# Parser infrastructure (for multi-language support)
+from mcp_core.algorithms.parsers import (
+    LanguageParser,
+    ASTNode,
+    ParserRegistry,
+    PythonParser
+)
 
 __all__ = [
     "OCCValidator",
@@ -29,4 +38,10 @@ __all__ = [
     "VerificationResult",
     "OchiaiLocalizer",
     "CoverageSpectrum",
+    "GitWorker",
+    # Parser infrastructure
+    "LanguageParser",
+    "ASTNode",
+    "ParserRegistry",
+    "PythonParser",
 ]

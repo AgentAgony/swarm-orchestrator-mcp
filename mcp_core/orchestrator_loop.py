@@ -18,7 +18,7 @@ from mcp_core.llm import generate_response
 from mcp_core.algorithms import (
     OCCValidator, CRDTMerger, HippoRAGRetriever,
     WeightedVotingConsensus, DebateEngine,
-    Z3Verifier, OchiaiLocalizer
+    Z3Verifier, OchiaiLocalizer, GitWorker
 )
 
 STATE_FILE = "project_profile.json"
@@ -64,8 +64,11 @@ class Orchestrator:
         self.debate = DebateEngine()
         self.verifier = Z3Verifier() if Z3Verifier else None
         self.sbfl = OchiaiLocalizer() if OchiaiLocalizer else None
+        self.git = GitWorker(root_path)
         
         logging.info("✅ v3.0 Algorithm workers initialized")
+        if self.git.is_available():
+            logging.info(f"✅ Git: {self.git.config.provider.value}")
 
     def _ensure_migration(self):
         """Auto-Archive Legacy State Logic."""
@@ -130,6 +133,10 @@ class Orchestrator:
         # 7. Tests Failing (Ochiai SBFL)
         if task.tests_failing and self._handle_fault_localization(task):
             algorithm_handled = True
+        
+        # 8. Git Workflow (v3.2 - Autonomous Git Team)
+        if (task.git_commit_ready or task.git_create_pr) and self._handle_git_workflow(task):
+            algorithm_handled = True
 
         # If algorithm handled the task, skip traditional LLM flow
         if algorithm_handled:
@@ -140,6 +147,14 @@ class Orchestrator:
         # Instead of self.state.memory_bank (which could be huge), we just pass key items
         # For now, we still pass it, but this is where the RollingWindow would go.
         context_slice = self.state.memory_bank
+        
+        # [v3.1: Git Context Injection]
+        git_context = {}
+        if self.git.is_available():
+            git_context = {
+                "git_available": True,
+                "git_workflow_instructions": self.git.get_workflow_instructions()
+            }
 
         worker_prompt = ""
         worker_model = self.state.worker_models.get("default", "gemini-pro")
@@ -148,10 +163,10 @@ class Orchestrator:
             worker_prompt = prompt_architect(task, context_slice)
             worker_model = self.state.worker_models.get("architect", worker_model)
         elif "audit" in task.description.lower():
-            worker_prompt = prompt_auditor(task, {})
+            worker_prompt = prompt_auditor(task, git_context)
             worker_model = self.state.worker_models.get("auditor", worker_model)
         else:
-            worker_prompt = prompt_engineer(task, context_slice, {})
+            worker_prompt = prompt_engineer(task, context_slice, git_context)
             worker_model = self.state.worker_models.get("engineer", worker_model)
 
         logging.info(f"Dispatching task {task_id[:8]}...")
@@ -329,4 +344,81 @@ class Orchestrator:
         except Exception as e:
             logging.error(f"SBFL failed: {e}")
             task.feedback_log.append(f"SBFL error: {e}")
+            return False
+    
+    def _handle_git_workflow(self, task: Task) -> bool:
+        """
+        Orchestrate Git worker team for autonomous repository maintenance.
+        
+        Workflow:
+        1. Branch (if git_branch_name specified)
+        2. Commit (if git_commit_ready)
+        3. Push (if git_auto_push)
+        4. PR (if git_create_pr)
+        """
+        if not self.git.is_available():
+            task.feedback_log.append("Git: Not available")
+            return False
+        
+        try:
+            from mcp_core.worker_prompts import prompt_git_branch, prompt_git_commit, prompt_git_pr
+            
+            # Parse repo info from remote
+            repo_owner = None
+            repo_name = None
+            if self.git.config.remote_url:
+                parts = self.git.config.remote_url.split('/')
+                if len(parts) >= 2:
+                    repo_owner = parts[-2]
+                    repo_name = parts[-1].replace('.git', '')
+            
+            # 1. Branch Worker (if needed)
+            if task.git_branch_name and task.git_branch_name not in task.feedback_log:
+                git_context = {
+                    "git_branch_name": task.git_branch_name,
+                    "git_base_branch": task.git_base_branch,
+                }
+                branch_prompt = prompt_git_branch(task, git_context)
+                task.feedback_log.append(f"🌿 Branch Worker: Create {task.git_branch_name}")
+                task.feedback_log.append(f"Instructions: {branch_prompt[:200]}...")
+                logging.info(f"✅ Branch Worker dispatched for {task.task_id[:8]}")
+            
+            # 2. Commit Worker (if ready)
+            if task.git_commit_ready and task.output_files:
+                git_context = {
+                    "output_files": task.output_files,
+                    "repo_owner": repo_owner,
+                    "repo_name": repo_name,
+                }
+                commit_prompt = prompt_git_commit(task, git_context)
+                task.feedback_log.append(f"💾 Commit Worker: Stage {len(task.output_files)} files")
+                task.feedback_log.append(f"Instructions: {commit_prompt[:200]}...")
+                logging.info(f"✅ Commit Worker dispatched for {task.task_id[:8]}")
+            
+            # 3. PR Worker (if flagged and on feature branch)
+            if task.git_create_pr and task.git_branch_name:
+                if not self.git.is_github():
+                    task.feedback_log.append("⚠️ PR Worker: GitHub not detected")
+                    return True  # Not an error, just skip
+                
+                git_context = {
+                    "git_branch_name": task.git_branch_name,
+                    "git_base_branch": task.git_base_branch,
+                    "git_pr_title": task.git_pr_title or task.description[:60],
+                    "git_pr_body": task.git_pr_body or f"Automated PR from Swarm task {task.task_id[:8]}",
+                    "output_files": task.output_files,
+                    "repo_owner": repo_owner,
+                    "repo_name": repo_name,
+                }
+                pr_prompt = prompt_git_pr(task, git_context)
+                task.feedback_log.append(f"🔀 PR Worker: Create PR to {task.git_base_branch}")
+                task.feedback_log.append(f"Instructions: {pr_prompt[:200]}...")
+                logging.info(f"✅ PR Worker dispatched for {task.task_id[:8]}")
+            
+            logging.info(f"✅ Git workflow orchestrated for {task.task_id[:8]}")
+            return True
+            
+        except Exception as e:
+            logging.error(f"Git workflow failed: {e}")
+            task.feedback_log.append(f"Git workflow error: {e}")
             return False

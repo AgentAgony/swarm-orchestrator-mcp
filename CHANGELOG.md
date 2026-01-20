@@ -2,6 +2,35 @@
 
 All notable changes to Project Swarm will be documented in this file.
 
+## [3.1.0] - 2026-01-19
+
+### Enhanced
+- **Multi-Language HippoRAG**: Extended AST-based knowledge graph to support JavaScript, TypeScript, and future languages via Tree-sitter parser plugins
+  - **Python** (built-in `ast` module, always available, no dependencies)
+  - **JavaScript/JSX** (optional, requires `tree-sitter`, `tree-sitter-javascript`)
+  - **TypeScript/TSX** (optional, requires `tree-sitter`, `tree-sitter-typescript`)
+  - **Future-Ready**: Plugin system ready for Go, Rust, Java
+  - **Lazy Loading**: Tree-sitter packages only loaded when parsing non-Python files
+  - **Backward Compatible**: Existing Python-only workflows unchanged
+
+### Added
+- **Parser Infrastructure** (`mcp_core/algorithms/parsers/`)
+  - `LanguageParser` abstract base class for plugin system
+  - `ParserRegistry` with lazy loading and auto-detection
+  - `PythonParser` refactored from `hipporag_retriever.py`
+  - `TreeSitterParser` base class for multi-language support
+  - `JavaScriptParser` (functions, classes, arrow functions, JSX)
+  - `TypeScriptParser` (interfaces, type aliases, enums, TSX)
+- **Tests**: Comprehensive test suite in `test_parsers.py`
+- **Documentation**: Updated `workers.md` and `README.md` with multi-language examples
+
+### Changed
+- **HippoRAG Retriever**: Refactored to use parser registry instead of hard-coded Python AST logic
+- **Auto-Detection**: `build_graph_from_ast()` now auto-detects all supported extensions when called without arguments
+- **Requirements**: Added optional Tree-sitter dependencies (commented out by default)
+
+---
+
 ## [3.0.3] - 2026-01-19
 
 ### Removed

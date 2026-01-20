@@ -48,13 +48,21 @@ Return strictly valid JSON matching this schema:
 
 def prompt_engineer(task: Any, memory: Dict[str, Any], context: Dict[str, Any]) -> str:
     """Generates the prompt for the Engineer worker."""
+    
+    # Inject Git workflow instructions if Git is available
+    git_section = ""
+    if context.get("git_available"):
+        git_workflow = context.get("git_workflow_instructions", "")
+        if git_workflow:
+            git_section = f"\n{git_workflow}\n"
+    
     return f"""
 <role_definition>
 You are a Senior Polyglot Software Engineer.
 Your goal is to IMPLEMENT the assigned Task with zero defects.
 You value: Test-Driven Development (TDD), Type Safety, and Readability.
 </role_definition>
-
+{git_section}
 <mission>
 TASK: {task.description}
 CONTEXT: {context}
@@ -178,4 +186,143 @@ def register(mcp: FastMCP):
     c. Advise the user to run `restart_server()`.
 </process>
 """
+
+
+# ============================================================================
+# Git Worker Prompts (v3.2)
+# ============================================================================
+
+def prompt_git_commit(task: Any, context: Dict[str, Any]) -> str:
+    """Generates the prompt for the Commit Worker."""
+    files = context.get("output_files", [])
+    return f"""
+<role_definition>
+You are the Commit Worker.
+Your goal is to create atomic, well-described Git commits.
+</role_definition>
+
+<mission>
+Stage and commit the following files:
+{', '.join(files) if files else 'All modified files'}
+
+Task: {task.description}
+</mission>
+
+<rules>
+1. **Atomic Commits**: One commit per logical change
+2. **Message Format**: "🤖 Swarm: {task.description[:50]}..."
+3. **Stage Only Outputs**: Only stage files in output_files list
+</rules>
+
+<tools>
+Use IDE git tools:
+1. git add {' '.join(files) if files else '.'}
+2. git commit -m "🤖 Swarm: {task.description[:50]}"
+3. Verify with: git log -1
+</tools>
+
+<success_criteria>
+- All output files staged
+- Commit created with Swarm prefix
+- No unintended files included
+</success_criteria>
+"""
+
+
+def prompt_git_pr(task: Any, context: Dict[str, Any]) -> str:
+    """Generates the prompt for the PR Worker."""
+    branch = context.get("git_branch_name", "feature/unknown")
+    base = context.get("git_base_branch", "main")
+    pr_title = context.get("git_pr_title", task.description[:60])
+    pr_body = context.get("git_pr_body", f"Automated PR from Swarm task {task.task_id[:8]}")
+    
+    pr_body_template = f'''## Swarm Task: {task.task_id[:8]}
+
+{pr_body}
+
+### Changes  
+- {task.description}
+
+### Files Modified
+{', '.join(context.get('output_files', []))}
+
+---
+*Automated PR from Swarm Orchestrator*'''
+    
+    return f"""
+<role_definition>
+You are the PR Worker.
+Your goal is to create well-documented pull requests on GitHub.
+</role_definition>
+
+<mission>
+Create a pull request:
+- Branch: {branch}
+- Target: {base}
+- Title: {pr_title}
+</mission>
+
+<rules>
+1. **Use GitHub MCP**: Call create_pull_request tool
+2. **Include Context**: PR body should explain changes
+3. **Link Task**: Reference task ID in PR body
+</rules>
+
+<tools>
+Use GitHub MCP server:
+create_pull_request(
+    owner="{context.get('repo_owner', 'DETECT_FROM_REMOTE')}",
+    repo="{context.get('repo_name', 'DETECT_FROM_REMOTE')}",
+    title="{pr_title}",
+    head="{branch}",
+    base="{base}",
+    body="{pr_body_template}"
+)
+</tools>
+
+<success_criteria>
+- PR created successfully
+- PR URL returned
+- PR body includes task context
+</success_criteria>
+"""
+
+
+def prompt_git_branch(task: Any, context: Dict[str, Any]) -> str:
+    """Generates the prompt for the Branch Worker."""
+    branch_name = context.get("git_branch_name", f"feature/task-{task.task_id[:8]}")
+    base_branch = context.get("git_base_branch", "main")
+    
+    return f"""
+<role_definition>
+You are the Branch Worker.
+Your goal is to create and switch to feature branches.
+</role_definition>
+
+<mission>
+Create and switch to branch: {branch_name}
+Base: {base_branch}
+</mission>
+
+<rules>
+1. **Naming Convention**: feature/task-<id> or feature/<description>
+2. **Clean State**: Ensure working directory is clean first
+3. **Track Remote**: Set up tracking if pushing to remote
+</rules>
+
+<tools>
+Use IDE git tools:
+1. git checkout {base_branch}
+2. git pull origin {base_branch}  # Ensure up to date
+3. git checkout -b {branch_name}
+4. Verify with: git branch
+</tools>
+
+<success_criteria>
+- Branch created from latest {base_branch}
+- Currently on {branch_name}
+- Ready for changes
+</success_criteria>
+"""
+
 
