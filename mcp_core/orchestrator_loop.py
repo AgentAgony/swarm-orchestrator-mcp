@@ -20,6 +20,7 @@ from mcp_core.algorithms import (
     WeightedVotingConsensus, DebateEngine,
     Z3Verifier, OchiaiLocalizer, GitWorker
 )
+from mcp_core.sync.sync_engine import SyncEngine
 
 STATE_FILE = "project_profile.json"
 LEGACY_STATE_FILE = "blackboard_state.json"
@@ -65,6 +66,7 @@ class Orchestrator:
         self.verifier = Z3Verifier() if Z3Verifier else None
         self.sbfl = OchiaiLocalizer() if OchiaiLocalizer else None
         self.git = GitWorker(root_path)
+        self.sync = SyncEngine(root_path)
         
         logging.info("✅ v3.0 Algorithm workers initialized")
         if self.git.is_available():
@@ -191,7 +193,9 @@ class Orchestrator:
                  task.feedback_log.append("📝 Tip: You have uncommitted changes. To save, ask: 'Run git worker'")
 
         self.state.tasks[task_id] = task
+        self.state.tasks[task_id] = task
         self.save_state()
+        self.sync.sync_outbound(self.state)
 
     def _write_task_file(self, task: Task, prompt: str):
         with open("CURRENT_TASK.md", "w") as f:
@@ -213,6 +217,10 @@ class Orchestrator:
 
             for task in pending:
                 self.process_task(task.task_id)
+            
+            # [V3.6: Sync]
+            if self.sync.sync_inbound(self.state):
+                self.save_state()
 
     # [V3.0: Algorithm Handlers]
     
@@ -411,7 +419,7 @@ class Orchestrator:
                 
                 # [Cost Check] Use Cheap LLM to generate commit message
                 try:
-                    logger.info(f"💾 Generating commit message with {git_model}...")
+                    logging.info(f"💾 Generating commit message with {git_model}...")
                     response = generate_response(commit_prompt, model_alias=git_model)
                     
                     # Extract the commit message/command from response tools or reasoning
@@ -437,7 +445,7 @@ class Orchestrator:
                        task.feedback_log.append(f"💾 Commit Worker ({git_model}):\n{response.reasoning_trace}")
                     
                 except Exception as e:
-                    logger.error(f"Git Generation Failed: {e}")
+                    logging.error(f"Git Generation Failed: {e}")
                     task.feedback_log.append(f"Instructions: {commit_prompt[:200]}...")
 
                 logging.info(f"✅ Commit Worker dispatched for {task.task_id[:8]}")
@@ -475,7 +483,7 @@ class Orchestrator:
                 
                 # [Cost Check] Use Cheap LLM to generate PR body
                 try:
-                    logger.info(f"🔀 Generating PR with {git_model}...")
+                    logging.info(f"🔀 Generating PR with {git_model}...")
                     response = generate_response(pr_prompt, model_alias=git_model)
                     
                     if response.tool_calls:
@@ -485,7 +493,7 @@ class Orchestrator:
                        task.feedback_log.append(f"🔀 PR Worker ({git_model}):\n{response.reasoning_trace}")
                        
                 except Exception as e:
-                    logger.error(f"PR Generation Failed: {e}")
+                    logging.error(f"PR Generation Failed: {e}")
                     task.feedback_log.append(f"Instructions: {pr_prompt[:200]}...")
 
                 logging.info(f"✅ PR Worker dispatched for {task.task_id[:8]}")

@@ -3,6 +3,9 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
+# Install system dependencies (Git is required for Autonomous Git Worker)
+RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
+
 # Install Python dependencies
 # Note: z3-solver and other wheels are installed here
 COPY requirements.txt .

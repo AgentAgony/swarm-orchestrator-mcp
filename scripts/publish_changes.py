@@ -2,11 +2,16 @@
 import os
 import sys
 import logging
+import logging
+from pathlib import Path
+
+# Add project root to path (robust)
+project_root = str(Path(__file__).parent.parent.absolute())
+if project_root not in sys.path:
+    sys.path.append(project_root)
+
 from mcp_core.orchestrator_loop import Orchestrator
 from mcp_core.swarm_schemas import Task
-
-# Add project root to path
-sys.path.append(os.getcwd())
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(message)s')
