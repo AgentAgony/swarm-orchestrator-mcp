@@ -172,53 +172,8 @@ def check_health() -> str:
 # ============================================================================
 
 
-def classify_task_intent(instruction: str) -> dict:
-    """
-    Classify task intent from natural language instruction.
-    Returns dict of task flags to set based on detected keywords.
-    
-    This enables routing to specialized algorithms:
-    - HippoRAG for context retrieval
-    - Z3 for verification
-    - Ochiai SBFL for debugging
-    - OCC for conflict detection
-    - CRDT for concurrent edits
-    """
-    flags = {}
-    text = instruction.lower()
-    
-    # Debug/Fault Localization -> Ochiai SBFL
-    if any(w in text for w in ["debug", "why", "fail", "broken", "error", "bug"]):
-        flags["tests_failing"] = True
-    
-    # Verification -> Z3
-    if any(w in text for w in ["verify", "prove", "contract", "formal", "guarantee"]):
-        flags["verification_required"] = True
-    
-    # Context Retrieval -> HippoRAG
-    if any(w in text for w in ["analyze", "understand", "how does", "explain", "context", "architecture"]):
-        flags["context_needed"] = True
-    
-    # Concurrent Editing -> CRDT
-    if any(w in text for w in ["merge", "combine", "conflict", "concurrent"]):
-        flags["concurrent_edits"] = True
-    
-    # Refactoring -> OCC
-    if any(w in text for w in ["refactor", "rewrite", "restructure"]):
-        flags["conflicts_detected"] = True
-    
-    # Git Automation
-    if "commit" in text:
-        flags["git_commit_ready"] = True
-    
-    if any(w in text for w in ["push", "deploy", "publish"]):
-        flags["git_auto_push"] = True
-        
-    if any(w in text for w in ["pull request", "pr", "merge request"]):
-        flags["git_create_pr"] = True
-    
-    return flags
 
+# classify_task_intent() removed - not needed for direct tool access
 
 def get_orchestrator() -> Orchestrator:
     """Lazy-load orchestrator instance."""
@@ -240,120 +195,11 @@ def get_indexer() -> CodebaseIndexer:
     return _indexer
 
 
-@mcp.tool()
-@collector.track_tool("process_task")
-def process_task(instruction: str) -> str:
-    """
-    Create and process a task in the Swarm orchestrator using algorithmic workers.
-    
-    **Task Routing (automatic based on instruction):**
-    
-    Your instruction triggers specialized algorithm workers:
-    - "refactor..." → OCC Validator (conflict detection + resolution)
-    - "debug..." / "why is failing..." → Ochiai SBFL (fault localization)
-    - "verify..." / "prove..." → Z3 Verifier (formal verification)
-    - "merge..." / "combine..." → CRDT Merger (collaborative editing)
-    - "analyze..." / "understand..." →HippoRAG (deep context)
-    
-    **Best Practices for Instructions:**
-    
-    ✅ Be specific:
-    - Good: "Refactor auth.py to use async/await"
-    - Bad: "fix auth"
-    
-    ✅ Include context:
-    - Good: "Debug login failure - tests in test_auth.py are failing"
-    - Bad: "login broken"
-    
-    ✅ One concern per task:
-    - Good: "Verify calculate_tax never returns negative values"
-    - Bad: "Fix everything in billing module"
-    
-    **When to use:**
-    - Code analysis, refactoring, or modifications
-    - Tasks requiring algorithmic capabilities (SBFL, Z3, CRDT, OCC)
-    - Complex multi-step software engineering workflows
-    - Blackboard state management for task tracking
-    
-    **When NOT to use:**
-    - Simple code search (use search_codebase)
-    - Running commands (use Docker MCP)
-    - File operations (use filesystem MCP)
-    - Git operations (use GitHub MCP)
-    - Quick questions (ask directly)
-    
-    **Performance:**
-    - Varies by algorithm: ~1s-30s depending on task complexity
-    - Blackboard state persists between calls
-    - Check progress with get_status()
-    
-    **Works well with:**
-    - Docker MCP: Process task → test in containers
-    - GitHub MCP: Process task → commit changes
-    - Filesystem MCP: Read files → process task
-    
-    **Examples:**
-    ```
-    # Refactoring (triggers OCC conflict detection)
-    process_task("Refactor authentication module to use async/await")
-    
-    # Debugging (triggers Ochiai SBFL)
-    process_task("Debug why test_login fails - find suspicious lines")
-    
-    # Verification (triggers Z3)
-    process_task("Verify get_user() never returns None for valid IDs")
-    
-    # Analysis (triggers HippoRAG)
-    process_task("Analyze the data pipeline and document dependencies")
-    ```
-    
-    Args:
-        instruction: Natural language task description (specific, with context)
-        
-    Returns:
-        Task ID, status, and initial feedback from Swarm workers
-    """
-    
-    # GUARDRAILS: Validate instruction specificity
-    def _validate_instruction(text: str) -> Optional[str]:
-        words = text.strip().split()
-        if len(words) < 3:
-            return "❌ Task Rejected: Instruction too short. Please be specific (e.g., 'Refactor auth.py to use async')."
-        # Can add more heuristics here (e.g. check for common vague words like "fix it", "help")
-        return None
 
-    error = _validate_instruction(instruction)
-    if error:
-        return error
-
-    try:
-        orch = get_orchestrator()
-        
-        # Classify task intent to set routing flags
-        intent_flags = classify_task_intent(instruction)
-        logger.info(f"Task classified with flags: {intent_flags}")
-        
-        # Create a new task with classified flags
-        task = Task(description=instruction, **intent_flags)
-        task_id = task.task_id
-        
-        # Add to orchestrator state
-        orch.state.tasks[task_id] = task
-        orch.save_state()
-        
-        # Process the task
-        orch.process_task(task_id)
-        
-        # Reload to get updated status
-        orch.load_state()
-        updated_task = orch.state.tasks[task_id]
-        
-        return f"✅ Task {task_id[:8]} created and processed.\nStatus: {updated_task.status}\nFeedback: {updated_task.feedback_log[-1] if updated_task.feedback_log else 'None'}"
-        
-    except Exception as e:
-        logger.error(f"Error processing task: {e}")
-        return f"❌ Error: {str(e)}"
-
+# process_task() removed - use direct tools instead:
+# - search_codebase() for code search
+# - deliberate() for multi-step reasoning
+# - retrieve_context() for HippoRAG analysis
 
 @mcp.tool()
 @collector.track_tool("deliberate")
