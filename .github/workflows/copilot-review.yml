@@ -1,0 +1,21 @@
+name: Algorithm Review Request
+
+on:
+  pull_request:
+    paths:
+      - 'mcp_core/algorithms/**'
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Request Algorithmic Review
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.pulls.requestReviewers({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.pull_request.number,
+              reviewers: ['your-algorithmic-lead'] # Placeholder, update as needed
+            });

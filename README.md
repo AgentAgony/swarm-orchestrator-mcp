@@ -4,6 +4,8 @@
 
 [![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://python.org)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg)](https://docker.com)
+[![CI](https://github.com/yourusername/swarm/actions/workflows/ci.yml/badge.svg)](https://github.com/yourusername/swarm/actions/workflows/ci.yml)
+[![Security](https://github.com/yourusername/swarm/actions/workflows/security.yml/badge.svg)](https://github.com/yourusername/swarm/actions/workflows/security.yml)
 [![MCP](https://img.shields.io/badge/MCP-Compatible-green.svg)](https://modelcontextprotocol.io)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
