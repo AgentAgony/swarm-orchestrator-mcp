@@ -1,16 +1,47 @@
-# React + Vite
+# Swarm Admin Dashboard
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+The Swarm Admin Dashboard provides a real-time visual interface for the Orchestrator, allowing you to monitor tasks, view the knowledge graph, and check system status.
 
-Currently, two official plugins are available:
+## Architecture
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+-   **Frontend**: React (Vite) + Wouter + Lucide + Recharts
+-   **Backend**: FastAPI (`../dashboard_server.py`) acting as a bridge to the Orchestrator logic.
+-   **Design**: custom "Premium" glassmorphism theme using Vanilla CSS.
 
-## React Compiler
+## Prerequisites
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+-   Node.js (v18+)
+-   Python 3.10+
+-   Swarm dependencies (installed in the parent project)
 
-## Expanding the ESLint configuration
+## Installation & Running
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+### 1. Build the Frontend
+Inside this `dashboard/` directory:
+```bash
+npm install
+npm run build
+```
+
+### 2. Start the Dashboard Server
+From the root `swarm` directory (parent):
+```bash
+python dashboard_server.py
+```
+
+### 3. Access the Dashboard
+Open [http://localhost:8000](http://localhost:8000) in your browser.
+
+## Features
+
+-   **Overview**: System stats (active tasks, memory nodes).
+-   **Task Board**: List of active tasks and their status.
+-   **Knowledge Graph**: Interactive force-directed graph of the codebase (HippoRAG).
+-   **Memory**: View active context and memory state.
+
+## Development
+
+-   **Frontend Dev Server**: `npm run dev` (Runs on port 5173).
+-   **Backend Dev Server**: `python ../dashboard_server.py` (Runs on port 8000).
+
+Note: The dashboard client expects the backend API at `/api`. In production (FastAPI serving static files), this works automatically. For development with `npm run dev`, you may need to configure Vite proxy.
