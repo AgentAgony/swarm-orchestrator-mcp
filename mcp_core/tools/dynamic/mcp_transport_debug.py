@@ -2,11 +2,7 @@ import httpx
 import subprocess
 import time
 from typing import Optional
-from fastmcp import FastMCP
 
-mcp = FastMCP("TransportDebugger")
-
-@mcp.tool()
 def debug_mcp_transport(target_url: Optional[str] = None, container_name: Optional[str] = None) -> str:
     """
     Debug and profile MCP transport connectivity for troubleshooting 'the gate'.
