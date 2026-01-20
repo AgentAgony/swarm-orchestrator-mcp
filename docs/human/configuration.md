@@ -43,7 +43,7 @@ export GEMINI_API_KEY="your-key-here"
 ```
 
 **Capabilities:**
-- **Inference**: Uses `gemini-2.0-flash-exp` (Primary), `gemini-3-flash-preview` (Git), `gemini-1.5-pro` (Reasoning).
+- **Inference**: Uses `gemini-3-flash-preview` (Primary), `gemini-2.5-flash` (Stable), `gemini-2.5-pro` (Reasoning).
 - **Embeddings**: Uses `models/text-embedding-004` (768 dimensions).
 - **Cost**: Free tier available, then pay-per-use.
 

@@ -19,8 +19,15 @@ from mcp_core.telemetry.collector import collector
 from pathlib import Path
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[
+        logging.FileHandler("server.log"),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger("SwarmServer")
 
 # Initialize FastMCP server
 mcp = FastMCP("Swarm Orchestrator v3.0")
@@ -68,6 +75,32 @@ def get_ai_examples() -> str:
     """Common AI agent workflow examples."""
     return (_SERVER_DIR / "docs" / "ai" / "examples.md").read_text()
 
+# AI Skills - Procedural instructions for common workflows
+@mcp.resource("swarm://skills/git-commits")
+def get_skill_git_commits() -> str:
+    """Conventional Commits format and workflow."""
+    return (_SERVER_DIR / "docs" / "ai" / "skills" / "git-conventional-commits.md").read_text()
+
+@mcp.resource("swarm://skills/git-pr")
+def get_skill_git_pr() -> str:
+    """Pull request creation best practices."""
+    return (_SERVER_DIR / "docs" / "ai" / "skills" / "git-pull-request.md").read_text()
+
+@mcp.resource("swarm://skills/git-branch")
+def get_skill_git_branch() -> str:
+    """Branch naming and workflow conventions."""
+    return (_SERVER_DIR / "docs" / "ai" / "skills" / "git-branch-workflow.md").read_text()
+
+@mcp.resource("swarm://skills/security-audit")
+def get_skill_security_audit() -> str:
+    """OWASP security checklist and audit procedures."""
+    return (_SERVER_DIR / "docs" / "ai" / "skills" / "security-audit.md").read_text()
+
+@mcp.resource("swarm://skills/tool-creation")
+def get_skill_tool_creation() -> str:
+    """Guide for creating new MCP tools."""
+    return (_SERVER_DIR / "docs" / "ai" / "skills" / "tool-creation.md").read_text()
+
 # Human documentation
 @mcp.resource("swarm://docs/architecture")
 def get_architecture() -> str:
@@ -104,11 +137,87 @@ def get_changelog() -> str:
     """Version history and release notes."""
     return (_SERVER_DIR / "CHANGELOG.md").read_text()
 
+# ============================================================================
+# MCP Tools - Discovery & Health
+# ============================================================================
+
+@mcp.tool()
+def check_health() -> str:
+    """
+    Check the health of the Swarm MCP server.
+    Returns status of orchestrator, indexer, and connectivity.
+    """
+    status = ["🟢 Swarm MCP Server is healthy."]
+    
+    if _orchestrator:
+        status.append("✅ Orchestrator: Initialized")
+    else:
+        status.append("⚪ Orchestrator: Ready (Lazy-load)")
+        
+    if _indexer:
+        status.append("✅ Indexer: Initialized")
+    else:
+        status.append("⚪ Indexer: Ready (Lazy-load)")
+        
+    import os
+    if os.environ.get("IS_DOCKER"):
+        status.append("🐳 Environment: Docker Container")
+    else:
+        status.append("💻 Environment: Local Host")
+        
+    return "\n".join(status)
 
 # ============================================================================
 # Helper Functions
 # ============================================================================
 
+
+def classify_task_intent(instruction: str) -> dict:
+    """
+    Classify task intent from natural language instruction.
+    Returns dict of task flags to set based on detected keywords.
+    
+    This enables routing to specialized algorithms:
+    - HippoRAG for context retrieval
+    - Z3 for verification
+    - Ochiai SBFL for debugging
+    - OCC for conflict detection
+    - CRDT for concurrent edits
+    """
+    flags = {}
+    text = instruction.lower()
+    
+    # Debug/Fault Localization -> Ochiai SBFL
+    if any(w in text for w in ["debug", "why", "fail", "broken", "error", "bug"]):
+        flags["tests_failing"] = True
+    
+    # Verification -> Z3
+    if any(w in text for w in ["verify", "prove", "contract", "formal", "guarantee"]):
+        flags["verification_required"] = True
+    
+    # Context Retrieval -> HippoRAG
+    if any(w in text for w in ["analyze", "understand", "how does", "explain", "context", "architecture"]):
+        flags["context_needed"] = True
+    
+    # Concurrent Editing -> CRDT
+    if any(w in text for w in ["merge", "combine", "conflict", "concurrent"]):
+        flags["concurrent_edits"] = True
+    
+    # Refactoring -> OCC
+    if any(w in text for w in ["refactor", "rewrite", "restructure"]):
+        flags["conflicts_detected"] = True
+    
+    # Git Automation
+    if "commit" in text:
+        flags["git_commit_ready"] = True
+    
+    if any(w in text for w in ["push", "deploy", "publish"]):
+        flags["git_auto_push"] = True
+        
+    if any(w in text for w in ["pull request", "pr", "merge request"]):
+        flags["git_create_pr"] = True
+    
+    return flags
 
 
 def get_orchestrator() -> Orchestrator:
@@ -220,8 +329,12 @@ def process_task(instruction: str) -> str:
     try:
         orch = get_orchestrator()
         
-        # Create a new task
-        task = Task(description=instruction)
+        # Classify task intent to set routing flags
+        intent_flags = classify_task_intent(instruction)
+        logger.info(f"Task classified with flags: {intent_flags}")
+        
+        # Create a new task with classified flags
+        task = Task(description=instruction, **intent_flags)
         task_id = task.task_id
         
         # Add to orchestrator state
@@ -281,9 +394,6 @@ def get_status() -> str:
         
         status_lines = ["📋 Swarm Blackboard Status:\n"]
         for task_id, task in orch.state.tasks.items():
-            status_lines.append(f"  • {task_id[:8]}: [{task.status}] {task.description[:50]}...")
-        
-        return "\n".join(status_lines)
             status_lines.append(f"  • {task_id[:8]}: [{task.status}] {task.description[:50]}...")
         
         return "\n".join(status_lines)
@@ -673,17 +783,27 @@ def retrieve_context(query: str, top_k: int = 10) -> str:
 
 
 if __name__ == "__main__":
-
-    # Run the MCP server in SSE mode for Docker deployment
-    # Note: We bypass the fastmcp CLI to avoid the run_stdio_async() host argument bug
+    import sys
     import os
+
+    # Auto-detect transport preference
+    # 1. Explicit --sse flag
+    # 2. IS_DOCKER environment variable
+    # 3. Default to stdio
     
-    host = os.environ.get("MCP_HOST", "0.0.0.0")
-    port = int(os.environ.get("MCP_PORT", "8000"))
+    use_sse = "--sse" in sys.argv or os.environ.get("IS_DOCKER") == "1"
     
-    logger.info(f"🚀 Starting Swarm MCP Server on {host}:{port}...")
-    logger.info("📡 Transport: HTTP/SSE (Server-Sent Events)")
-    
-    # Run in SSE mode with explicit host/port configuration
-    # FastMCP.run() handles the ASGI app creation internally
-    mcp.run(transport="sse", host=host, port=port)
+    if use_sse:
+        host = os.environ.get("MCP_HOST", "0.0.0.0")
+        port = int(os.environ.get("MCP_PORT", "8000"))
+        
+        logger.info(f"🚀 Starting Swarm MCP Server on {host}:{port}...")
+        logger.info("📡 Transport: HTTP/SSE (Server-Sent Events)")
+        
+        # Run in SSE mode with explicit host/port configuration
+        mcp.run(transport="sse", host=host, port=port)
+    else:
+        # Default: Stdio mode (IDE/Local mode)
+        logger.info("🚀 Starting Swarm MCP Server...")
+        logger.info("🔌 Transport: Stdio (Standard Input/Output)")
+        mcp.run()

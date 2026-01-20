@@ -18,7 +18,7 @@ class AgentResponse(BaseModel):
     tool_calls: List[ToolCall] = Field(default_factory=list, description="List of tools to execute") 
     blackboard_update: dict = Field(default_factory=dict, description="State updates")
     
-    class Config:
+    class ConfigDict:
         extra = "allow"
 
     @field_validator('validation_score')

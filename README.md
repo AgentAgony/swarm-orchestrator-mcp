@@ -13,6 +13,9 @@
 
 - **⚡ Auto-Pilot Search** - Automatically optimizes symbol queries to ~1ms (200x faster than semantic)
 - **🧠 HippoRAG Retrieval** - AST-based knowledge graphs with Personalized PageRank for deep code analysis (Python, JavaScript, TypeScript)
+- **📝 Rolling Memory System** - LLM-native context management with active/archive tiers to prevent bloat
+- **🔄 Dual-Mode Transport** - Stdio (local dev) or SSE (Docker) for maximum flexibility
+- **🎯 Memory Skills** - 5 specialized skills for orientation, logging, refresh, diagnostics, and roadmap sync
 - **📊 Adaptive Telemetry** - Privacy-first usage tracking to identify automation gaps
 - **🔍 Hybrid Search** - Semantic + keyword search with optional embeddings (Gemini/OpenAI/Local)
 - **🐛 Ochiai SBFL** - Automated fault localization for debugging
@@ -98,13 +101,15 @@ Add to your MCP configuration:
   "mcpServers": {
     "swarm-orchestrator": {
       "command": "docker",
-      "args": ["exec", "-i", "swarm-mcp-server", "python", "server.py"],
-      "enabled": true,
-      "autoAllow": ["search_codebase", "get_status", "retrieve_context"]
+      "args": ["exec", "-i", "swarm-mcp-server", "fastmcp", "run", "server.py"]
     }
   }
 }
 ```
+
+**Transport Modes:**
+- **Stdio (Recommended for Local)**: Uses `docker exec` for direct process communication
+- **SSE (For Production)**: Uses `http://localhost:8000/sse` for HTTP-based transport
 
 ---
 

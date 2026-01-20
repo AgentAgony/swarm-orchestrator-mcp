@@ -453,6 +453,90 @@ def benchmark() -> None:
         raise typer.Exit(code=1)
 
 
+# [V3.0: MCP & Docker Connectivity Commands]
+mcp_app = typer.Typer(help="Manage Docker MCP connectivity and IDE configuration.")
+app.add_typer(mcp_app, name="mcp")
+
+@mcp_app.command("discover")
+def mcp_discover():
+    """Discover running Docker MCP servers."""
+    console.print("[bold blue]🔍 Searching for Docker MCP servers...[/bold blue]")
+    try:
+        from scripts.mcp_discovery import get_docker_mcp_servers
+        servers = get_docker_mcp_servers()
+        
+        if not servers:
+            console.print("[yellow]❌ No Docker MCP servers found with mapped ports.[/yellow]")
+            return
+
+        table = Table(title="Docker MCP Servers")
+        table.add_column("Container", style="cyan")
+        table.add_column("Port", style="green")
+        table.add_column("Status", style="magenta")
+        table.add_column("SSE URL", style="blue")
+
+        for s in servers:
+            table.add_row(s['name'], s['port'], s['status'], s['url'])
+        
+        console.print(table)
+    except Exception as e:
+        console.print(f"[red]Error during discovery: {e}[/red]")
+
+@mcp_app.command("config")
+def mcp_config(
+    format: str = typer.Option("vscode", help="Config format: vscode, cursor, or windsurf"),
+    transport: str = typer.Option("stdio", help="Transport mode: stdio (docker exec) or sse (network)")
+):
+    """Generate IDE MCP client configuration."""
+    console.print(f"[bold blue]🛠️ Generating {format} configuration for {transport} transport...[/bold blue]")
+    
+    server_name = "swarm-orchestrator"
+    cwd = os.getcwd()
+    
+    if transport == "stdio":
+        config = {
+            "mcpServers": {
+                "swarm": {
+                    "command": "docker",
+                    "args": ["exec", "-i", "swarm-mcp-server", "python", "server.py"],
+                    "env": {
+                        "GEMINI_API_KEY": os.environ.get("GEMINI_API_KEY", ""),
+                        "OPENAI_API_KEY": os.environ.get("OPENAI_API_KEY", "")
+                    }
+                }
+            }
+        }
+    else:
+        # SSE transport
+        try:
+            from scripts.mcp_discovery import get_docker_mcp_servers
+            servers = get_docker_mcp_servers()
+            target = next((s for s in servers if "swarm" in s['name']), None)
+            url = target['url'] if target else "http://localhost:8000/sse"
+        except Exception:
+            url = "http://localhost:8000/sse"
+            
+        config = {
+            "mcpServers": {
+                "swarm-sse": {
+                    "url": url
+                }
+            }
+        }
+
+    # Print to console (IDE can copy-paste)
+    console.print("\n[bold green]Configuration generated:[/bold green]")
+    import json
+    console.print(json.dumps(config, indent=2))
+    
+    # Save to file if requested (optional logic here)
+    if format == "vscode":
+        dest = os.path.join(cwd, ".vscode", "mcp.json")
+        os.makedirs(os.path.dirname(dest), exist_ok=True)
+        # We don't overwrite user's main config, but we provide the snippet
+        console.print(f"\n[dim]Note: Save this to {dest} or your IDE's global MCP settings.[/dim]")
+
+
 @app.command()
 def check() -> None:
     """

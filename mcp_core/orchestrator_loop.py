@@ -40,37 +40,22 @@ class Orchestrator:
         self.state = ProjectProfile()
         self.load_state()
 
-        # [Component: Eyes]
-        self.detector = None # StackDetector(root_path)
+        # [Component: Eyes] - Lazy init
+        self._detector = None
+        self._toolchain = None
 
-        # [Component: Hands]
-        self.toolchain = None # ToolchainManager(root_path)
-
-        # Initialize Stack Identity if missing
-        if not self.state.stack_fingerprint:
-            logging.info("Initializing Stack Detection...")
-            self.state.stack_fingerprint = self.detector.detect()
-            self.save_state()
-
-        # Initialize Toolchain
-        self.state.toolchain_config = self.toolchain.load_or_detect(
-            self.state.stack_fingerprint)
-        self.save_state()
-
-        # [V3.0: Algorithm Components]
-        self.occ = None # OCCValidator()
-        self.crdt = None # CRDTMerger()
-        self.rag = None  # Lazy init (builds graph on first use)
-        self.consensus = None # WeightedVotingConsensus()
-        self.debate = None # DebateEngine()
-        self.verifier = None # Z3Verifier() if Z3Verifier else None
-        self.sbfl = None # OchiaiLocalizer() if OchiaiLocalizer else None
-        self.git = None # GitWorker(root_path)
-        self.sync = None # SyncEngine(root_path)
+        # [V3.0: Algorithm Components] - Lazy init
+        self._occ = None
+        self._crdt = None
+        self._rag = None
+        self._consensus = None
+        self._debate = None
+        self._verifier = None
+        self._sbfl = None
+        self._git = None
+        self._sync = None
         
-        logging.info("✅ v3.0 Algorithm workers initialized")
-        if self.git.is_available():
-            logging.info(f"✅ Git: {self.git.config.provider.value}")
+        logging.info("✅ Orchestrator initialized (lazy mode)")
 
     def _ensure_migration(self):
         """Auto-Archive Legacy State Logic."""
@@ -81,24 +66,126 @@ class Orchestrator:
                 f"⚠️ Migrating legacy state: {LEGACY_STATE_FILE} -> {archive_name}")
             shutil.move(LEGACY_STATE_FILE, archive_name)
 
+    # Lazy property accessors
+    @property
+    def git(self):
+        """Lazy init GitWorker"""
+        if self._git is None:
+            try:
+                self._git = GitWorker(self.root_path)
+                logging.info("✅ GitWorker initialized")
+            except Exception as e:
+                logging.warning(f"GitWorker unavailable: {e}")
+                self._git = None
+        return self._git
+
+    @property
+    def rag(self):
+        """Lazy init HippoRAGRetriever"""
+        if self._rag is None:
+            try:
+                self._rag = HippoRAGRetriever()
+                logging.info("✅ HippoRAGRetriever initialized")
+            except Exception as e:
+                logging.warning(f"HippoRAG unavailable: {e}")
+                self._rag = None
+        return self._rag
+
+    @property
+    def occ(self):
+        """Lazy init OCCValidator"""
+        if self._occ is None:
+            try:
+                self._occ = OCCValidator()
+            except Exception as e:
+                logging.warning(f"OCC unavailable: {e}")
+        return self._occ
+
+    @property
+    def crdt(self):
+        """Lazy init CRDTMerger"""
+        if self._crdt is None:
+            try:
+                self._crdt = CRDTMerger()
+            except Exception as e:
+                logging.warning(f"CRDT unavailable: {e}")
+        return self._crdt
+
+    @property
+    def consensus(self):
+        """Lazy init WeightedVotingConsensus"""
+        if self._consensus is None:
+            try:
+                self._consensus = WeightedVotingConsensus()
+            except Exception as e:
+                logging.warning(f"Consensus unavailable: {e}")
+        return self._consensus
+
+    @property
+    def debate(self):
+        """Lazy init DebateEngine"""
+        if self._debate is None:
+            try:
+                self._debate = DebateEngine()
+            except Exception as e:
+                logging.warning(f"Debate unavailable: {e}")
+        return self._debate
+
+    @property
+    def verifier(self):
+        """Lazy init Z3Verifier"""
+        if self._verifier is None:
+            try:
+                self._verifier = Z3Verifier()
+            except Exception as e:
+                logging.warning(f"Z3 unavailable: {e}")
+        return self._verifier
+
+    @property
+    def sbfl(self):
+        """Lazy init OchiaiLocalizer"""
+        if self._sbfl is None:
+            try:
+                self._sbfl = OchiaiLocalizer()
+            except Exception as e:
+                logging.warning(f"SBFL unavailable: {e}")
+        return self._sbfl
+
+    @property
+    def sync(self):
+        """Lazy init SyncEngine"""
+        if self._sync is None:
+            try:
+                self._sync = SyncEngine(self.root_path)
+            except Exception as e:
+                logging.warning(f"Sync unavailable: {e}")
+        return self._sync
+
     def load_state(self) -> None:
-        pass
-        # if not os.path.exists(self.state_file):
-        #     return
-        #
-        # with FileLock(self.lock_file):
-        #     try:
-        #         with open(self.state_file, "r") as f:
-        #             data = json.load(f)
-        #             self.state = ProjectProfile(**data)
-        #     except Exception as e:
-        #         logging.error(f"Failed to load state: {e}")
+        """Load orchestrator state from disk with error handling"""
+        if not os.path.exists(self.state_file):
+            logging.info("No existing state file, using fresh state")
+            return
+
+        try:
+            with FileLock(self.lock_file, timeout=5):
+                with open(self.state_file, "r") as f:
+                    data = json.load(f)
+                    self.state = ProjectProfile(**data)
+                    logging.info(f"✅ Loaded state from {self.state_file}")
+        except Exception as e:
+            logging.error(f"Failed to load state: {e}")
+            logging.info("Using fresh state instead")
 
     def save_state(self) -> None:
-        pass
-        # with FileLock(self.lock_file):
-        #     with open(self.state_file, "w") as f:
-        #         f.write(self.state.model_dump_json(indent=2))
+        """Save orchestrator state to disk with error handling"""
+        try:
+            with FileLock(self.lock_file, timeout=5):
+                with open(self.state_file, "w") as f:
+                    f.write(self.state.model_dump_json(indent=2))
+                logging.debug(f"State saved to {self.state_file}")
+        except Exception as e:
+            logging.error(f"Failed to save state: {e}")
 
     def process_task(self, task_id: str) -> None:
         self.load_state()
@@ -204,7 +291,7 @@ class Orchestrator:
             f.write(f"# Task: {task.task_id}\n\n## Instructions\n{prompt}\n")
 
     def orchestrate(self) -> None:
-        logging.info("Starting Polyglot Orchestrator v2.0...")
+        logging.info("Starting Polyglot Orchestrator v3.0...")
         # type: ignore
         logging.info(f"Stack: {self.state.stack_fingerprint.primary_language}")
 
@@ -461,7 +548,32 @@ class Orchestrator:
 
                 logging.info(f"✅ Commit Worker dispatched for {task.task_id[:8]}")
             
-            # 3. Auto-PR for completed feature tasks (v3.2 Autonomous Mode)
+            # 3. Push Worker (if auto-push enabled or PR requested)
+            if task.git_auto_push or task.git_create_pr:
+                if not self.git.has_changes():
+                    # Nothing to push (likely already committed and pushed)
+                    pass
+                else:
+                    # Changes exist but not committed - can't push
+                    task.feedback_log.append("⚠️ Push Worker Skipped: Uncommitted changes detected")
+                    logging.info("Push skipped: uncommitted changes")
+                
+                # Push if we have a branch set (assumes commit already happened)
+                if task.git_branch_name:
+                    try:
+                        logging.info(f"📤 Pushing {task.git_branch_name} to remote...")
+                        result = self._execute_git_tool("git_push", {
+                            "remote": "origin",
+                            "branch": task.git_branch_name
+                        })
+                        task.feedback_log.append(f"📤 Push Worker: {result}")
+                        logging.info(f"✅ Push Worker dispatched for {task.task_id[:8]}")
+                    except Exception as e:
+                        logging.error(f"Push failed: {e}")
+                        task.feedback_log.append(f"❌ Push failed: {e}")
+                        # Continue anyway - PR worker will fail gracefully
+            
+            # 4. Auto-PR for completed feature tasks (v3.2 Autonomous Mode)
             should_create_pr = task.git_create_pr
             if not should_create_pr and task.status == "COMPLETED" and task.git_branch_name:
                 # Auto-PR if: completed task + feature branch + GitHub ready

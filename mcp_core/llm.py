@@ -10,10 +10,10 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def generate_response(prompt: str, model_alias: str = "gemini-2.0-flash-exp") -> AgentResponse:
+def generate_response(prompt: str, model_alias: str = "gemini-3-flash-preview") -> AgentResponse:
     """
     Route the prompt to the configured LLM provider and Model ID.
-    Supports: "gemini-2.0-flash-exp", "claude-3-5-sonnet", etc.
+    Supports: "gemini-3-flash-preview", "gemini-2.5-pro", "gemini-2.5-flash", etc.
     """
     logger.info(f"🧠 Routing to Model: {model_alias}")
 
@@ -32,10 +32,9 @@ def generate_response(prompt: str, model_alias: str = "gemini-2.0-flash-exp") ->
     
     # Gemini Model Cascade (try in order, remember what works)
     GEMINI_CASCADE = [
-        "gemini-2.0-flash-exp",    # Stable fallback
-        "gemini-3-flash-preview",  # Experimental
-        "gemini-2.5-pro",          # Fallback 1
-        "gemini-2.5-flash",        # Fallback 2 (last resort)
+        "gemini-3-flash-preview",  # Primary (fastest, latest)
+        "gemini-2.5-flash",        # Fallback 1 (stable)
+        "gemini-2.5-pro",          # Fallback 2 (reasoning)
     ]
     
     is_gemini = "gemini" in model_alias or "flash" in model_alias or "pro" in model_alias

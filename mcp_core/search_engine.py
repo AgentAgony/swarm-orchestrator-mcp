@@ -48,10 +48,11 @@ class IndexConfig:
     """Configuration for the codebase indexer."""
     root_path: str = "."
     extensions: List[str] = field(default_factory=lambda: [
-        ".py", ".js", ".ts", ".jsx", ".tsx", ".go", ".rs", ".java", ".cpp", ".c"
+        ".py", ".js", ".ts", ".jsx", ".tsx", ".go", ".rs", ".java", ".cpp", ".c", ".md", ".txt"
     ])
     exclude_patterns: List[str] = field(default_factory=lambda: [
-        "node_modules", "__pycache__", ".git", "dist", "build", ".venv", "venv"
+        "node_modules", "__pycache__", ".git", "dist", "build", ".venv", "venv", 
+        ".swarm", "server.log", "*.tmp", "*.bak"
     ])
     chunk_size: int = 50  # lines per chunk
     chunk_overlap: int = 10  # overlapping lines

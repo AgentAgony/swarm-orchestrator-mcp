@@ -1,48 +1,78 @@
 # Getting Started with Project Swarm
 
-This guide will help you install and configure **Project Swarm v3.1** (Gemini-First Architecture) for your development environment.
+This guide will help you install and configure **Project Swarm v3.1** for your development environment.
 
 ## Prerequisites
 
 - **Python 3.11+**
 - **Docker** (recommended)
-- **Google Gemini API Key** (Required for v3.1 full functionality)
+- **Google Gemini API Key** (Optional, for semantic search)
   - *Get one here: [Google AI Studio](https://aistudio.google.com/app/apikey)*
 
 ### Optional
-- **Ollama** (for local fallback)
+- **OpenAI API Key** (Alternative to Gemini)
 - **Git**
 
 ---
 
 ## Installation Methods
 
-### Option 1: Docker (Recommended)
+### Option 1: Docker with Stdio (Recommended for Local Development)
 
-Docker provides the easiest setup with full isolation.
-
-**IMPORTANT**: Swarm v3.1 requires **SSE (Server-Sent Events)** for MCP communication. Do not use stdio.
+Docker with Stdio transport provides the most stable local development experience.
 
 ```bash
 # Clone the repository
 git clone https://github.com/yourusername/swarm.git
 cd swarm
 
-# Create .env file
+# Create .env file (optional, for semantic search)
 echo "GEMINI_API_KEY=your_key_here" > .env
 
-# Start the MCP server
+# Start the container
 docker compose up -d --build
 
 # Verify it's running
-docker compose logs -f swarm-orchestrator
+docker ps | grep swarm-mcp-server
+```
+
+**MCP Client Connection (Stdio via Docker Exec):**
+
+```json
+{
+  "mcpServers": {
+    "swarm-orchestrator": {
+      "command": "docker",
+      "args": ["exec", "-i", "swarm-mcp-server", "fastmcp", "run", "server.py"]
+    }
+  }
+}
+```
+
+### Option 2: Docker with SSE (For Production/Remote)
+
+For production deployments or remote access:
+
+```bash
+# Same setup as above
+docker compose up -d --build
+
+# Server available at http://localhost:8000/sse
 ```
 
 **MCP Client Connection (SSE):**
-- **URL**: `http://localhost:8000/sse`
-- **Transport**: SSE (Server-Sent Events)
 
-### Option 2: Local Python Installation
+```json
+{
+  "mcpServers": {
+    "swarm-orchestrator": {
+      "serverUrl": "http://localhost:8000/sse"
+    }
+  }
+}
+```
+
+### Option 3: Local Python Installation
 
 For development or direct CLI usage:
 
@@ -58,8 +88,11 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 # Install dependencies
 pip install -r requirements.txt
 
-# Run the MCP server (SSE Mode)
+# Run the MCP server (Stdio Mode - default)
 python server.py
+
+# Or run in SSE mode
+python server.py --sse
 ```
 
 ---
@@ -137,46 +170,84 @@ python orchestrator.py task "Debug login failure in test_auth.py"
 
 ### Antigravity IDE / Generic Client
 
-Add to your MCP configuration file:
+**Stdio Mode (Recommended for Local Development):**
 
 ```json
 {
   "mcpServers": {
     "swarm-orchestrator": {
-      "serverUrl": "http://localhost:8000/sse",
-      "enabled": true,
-      "autoAllow": ["search_codebase", "get_status", "retrieve_context", "process_task"]
+      "command": "docker",
+      "args": ["exec", "-i", "swarm-mcp-server", "fastmcp", "run", "server.py"]
     }
   }
 }
 ```
 
-**CRITICAL**: ensure you use `"serverUrl"` (SSE) and NOT `"command": "docker"` (stdio). Stdio is not supported in Docker mode for Swarm v3.1.
+**SSE Mode (For Production/Remote):**
+
+```json
+{
+  "mcpServers": {
+    "swarm-orchestrator": {
+      "serverUrl": "http://localhost:8000/sse"
+    }
+  }
+}
+```
+
+**Transport Mode Comparison:**
+
+| Mode | Use Case | Pros | Cons |
+|------|----------|------|------|
+| **Stdio** | Local development | No port conflicts, faster, no network stack | Requires running container |
+| **SSE** | Production, remote access | HTTP-based, firewall-friendly | Port management, IPv4/IPv6 issues on Windows |
 
 ---
 
 ## Troubleshooting
 
-### "EOF" or "Connection Closed" in MCP Client
+### "Server not found" in MCP Client
 
-**Cause**: You are likely using stdio transport (`docker exec ...`) instead of SSE.
-**Solution**: Change your client config to use `http://localhost:8000/sse`.
+**Cause**: Container not running or MCP client needs restart.
+**Solution**:
+```bash
+# Verify container is running
+docker ps | grep swarm-mcp-server
+
+# If not running, start it
+docker compose up -d
+
+# Restart your IDE/MCP client to reload config
+```
+
+### "Connection Closed" or "EOF" Errors
+
+**Cause**: Using wrong transport mode or container name mismatch.
+**Solution**:
+1. Verify your `mcp_config.json` uses the correct container name (`swarm-mcp-server`)
+2. Ensure `docker exec -i` includes the `-i` (interactive) flag
+3. Restart your IDE after config changes
+
+### Port Conflicts (SSE Mode)
+
+**Cause**: Port 8000 already in use.
+**Solution**:
+```bash
+# Kill orphan processes
+taskkill /F /IM python.exe  # Windows
+pkill -f python  # Linux/Mac
+
+# Or change port in docker-compose.yml
+```
 
 ### "No index found" Error
 
 **Solution**: Run `index_codebase()` or `python orchestrator.py index`.
 
-### Docker Container Won't Start
+### Memory/Context Issues
 
-**Solution**:
-```bash
-# Check logs
-docker compose logs swarm-orchestrator
-
-# Rebuild
-docker compose down
-docker compose up -d --build
-```
+**Cause**: Memory files growing too large or stale.
+**Solution**: Use the Memory Refresh Skill to consolidate `active/` into `archive/`.
 
 ---
 

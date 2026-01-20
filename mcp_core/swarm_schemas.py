@@ -80,7 +80,7 @@ class AuthorSignature(BaseModel):
 
 
 class Task(BaseModel):
-    """Swarm v2.0 Task (Replaces v1 Task)."""
+    """Swarm v3.0 Task (Standardized)."""
     task_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     description: str
     status: str = Field(pattern=r"^(PENDING|IN_PROGRESS|COMPLETED|FAILED)$")
@@ -118,8 +118,7 @@ class Task(BaseModel):
 
 class ProjectProfile(BaseModel):
     """
-    The Single Source of Truth for Project Swarm v2.0.
-    Replaces BlackboardState.
+    The Single Source of Truth for Project Swarm v3.0.
     """
     schema_version: str = "2.0.0"
     metadata: Dict[str, Any] = Field(default_factory=dict)
@@ -142,10 +141,10 @@ class ProjectProfile(BaseModel):
 
     worker_models: Dict[str, str] = Field(
         default_factory=lambda: {
-            "default": "gemini-2.0-flash-exp",
-            "architect": "gemini-2.0-flash-exp",
-            "engineer": "gemini-2.0-flash-exp",
-            "auditor": "gemini-2.0-flash-exp",
+            "default": "gemini-3-flash-preview",
+            "architect": "gemini-3-flash-preview",
+            "engineer": "gemini-3-flash-preview",
+            "auditor": "gemini-3-flash-preview",
             "git-writer": "llama-3.2-3b",
             **load_global_model_config()
         },

@@ -193,7 +193,7 @@ def benchmark_swarm_semantic(
 
 def main():
     """Run comprehensive benchmark comparison."""
-    print("\n" + "🔍 SWARM SEARCH BENCHMARK v2.0".center(60) + "\n")
+    print("\n" + "🔍 SWARM SEARCH BENCHMARK v3.0".center(60) + "\n")
     print("Accurate comparison against Antigravity's ripgrep")
     print("=" * 60)
     

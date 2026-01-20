@@ -33,8 +33,8 @@ graph TD
 Located in `mcp_core/orchestrator_loop.py`.
 - **State Machine**: Manages the lifecycle of tasks and context.
 - **Model Router**: `mcp_core/llm.py` implements a smart cascade:
-    - **Primary**: `gemini-2.0-flash-exp`
-    - **Fallback**: `gemini-3-flash-preview` -> `gemini-1.5-pro`
+    - **Primary**: `gemini-3-flash-preview`
+    - **Fallback**: `gemini-2.5-flash` -> `gemini-2.5-pro`
     - **Local**: `ollama/llama3` (optional)
 
 ### 2. The Blackboard (State)

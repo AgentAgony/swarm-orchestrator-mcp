@@ -27,7 +27,7 @@ class TelemetryCollector:
     def __init__(self):
         """Initialize the telemetry collector with a buffer."""
         db_path = Path.home() / ".swarm" / "telemetry.db"
-        self.buffer = LocalTelemetryBuffer(db_path=str(db_path))
+        self.buffer = LocalTelemetryBuffer(db_path=db_path)
         self.session_id = str(uuid.uuid4())
         self.install_id = self._get_install_id()
 
