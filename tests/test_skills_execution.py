@@ -64,7 +64,7 @@ def simulate_memory_refresh():
 def test_orient_trigger():
     """Verify PLAN.md has the orienting search triggers."""
     print("\n🔍 Testing 'Memory Orient Skill' Trigger...")
-    plan = SWARM_ROOT / "docs/PLAN.md"
+    plan = SWARM_ROOT / "docs/ai/PLAN.md"
     content = plan.read_text(encoding="utf-8")
     assert "search_codebase(\"Memory Lifecycle Workflow\")" in content, "Orienting trigger missing from PLAN.md"
     print("✅ Memory Orient Skill trigger verified in PLAN.md.")

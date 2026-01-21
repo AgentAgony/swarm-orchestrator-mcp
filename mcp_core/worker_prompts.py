@@ -205,3 +205,27 @@ Synthesize these worker outputs into a single, coherent recommendation. Include:
 
 Provide your synthesis in a clear, structured format.
 """
+
+def prompt_git_worker(task: Any, context: Dict[str, Any], contributing_model: str = None) -> str:
+    """Generates the prompt for the Autonomous GitWorker Agent."""
+    skill_content = _load_skill("git-worker-agent.md")
+    
+    project_profile = context.get("project_profile", "{}")
+    repo_context = context.get("repo_context", "{}")
+    
+    return f"""
+{skill_content}
+
+<input_contract>
+Target Task:
+{task.json() if hasattr(task, 'json') else str(task)}
+
+Project Profile Snapshot:
+{project_profile}
+
+Repo Context:
+{repo_context}
+
+Model ID: {contributing_model or 'Unknown'}
+</input_contract>
+"""
