@@ -56,7 +56,7 @@ The **Orchestrator** handles this interaction:
 
 ### 1.2 Tier 2: Strategic State (Markdown Artifacts)
 
-While Tier 1 is for the machine, Tier 2 is for "Hybrid Intelligence"—interfaces designed for human readability and strategic alignment. The artifacts **docs/PLAN.md** and **issues.md** act as the long-term memory and strategic roadmap.
+While Tier 1 is for the machine, Tier 2 is for "Hybrid Intelligence"—interfaces designed for human readability and strategic alignment. The artifacts **docs/ai/PLAN.md** and **issues.md** act as the long-term memory and strategic roadmap.
 
 #### 1.2.1 The PLAN.md Artifact and the "Round-Trip" Challenge
 

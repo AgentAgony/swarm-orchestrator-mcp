@@ -18,7 +18,8 @@ from mcp_core.llm import generate_response
 from mcp_core.algorithms import (
     CRDTMerger, HippoRAGRetriever,
     WeightedVotingConsensus, DebateEngine,
-    Z3Verifier, OchiaiLocalizer, GitWorker
+    Z3Verifier, OchiaiLocalizer, GitWorker,
+    ContextPruner
 )
 from mcp_core.sync.sync_engine import SyncEngine
 from mcp_core.telemetry.collector import collector
@@ -46,15 +47,16 @@ class Orchestrator:
         self._toolchain = None
 
         # [V3.0: Algorithm Components] - Lazy init
-        self._occ = None
         self._crdt = None
         self._rag = None
         self._consensus = None
         self._debate = None
         self._verifier = None
         self._sbfl = None
+        self._sbfl = None
         self._git = None
         self._sync = None
+        self._pruner = None
         
         logging.info("✅ Orchestrator initialized (lazy mode)")
 
@@ -154,6 +156,16 @@ class Orchestrator:
                 logging.warning(f"Sync unavailable: {e}")
         return self._sync
 
+    @property
+    def pruner(self):
+        """Lazy init ContextPruner"""
+        if self._pruner is None:
+            try:
+                self._pruner = ContextPruner()
+            except Exception as e:
+                logging.warning(f"ContextPruner unavailable: {e}")
+        return self._pruner
+
     def load_state(self) -> None:
         """Load orchestrator state from disk with error handling"""
         if not os.path.exists(self.state_file):
@@ -185,6 +197,16 @@ class Orchestrator:
         task = self.state.get_task(task_id)
         if not task or task.status == "COMPLETED":
             return
+
+        # [V3.5: Smart-Power] Prune Provenance Context
+        if self.state.provenance_log and self.pruner:
+            try:
+                self.state.provenance_log = self.pruner.prune(
+                    self.state.provenance_log, 
+                    task.description
+                )
+            except Exception as e:
+                logging.warning(f"Provenance pruning failed: {e}")
 
         # [V3.0: Algorithm Dispatch]
         # Check task flags and route to appropriate algorithm
@@ -240,14 +262,14 @@ class Orchestrator:
         worker_model = self.state.worker_models.get("default", "gemini-pro")
 
         if "plan" in task.description.lower():
-            worker_prompt = prompt_architect(task, context_slice)
             worker_model = self.state.worker_models.get("architect", worker_model)
+            worker_prompt = prompt_architect(task, context_slice, contributing_model=worker_model)
         elif "audit" in task.description.lower():
-            worker_prompt = prompt_auditor(task, git_context)
             worker_model = self.state.worker_models.get("auditor", worker_model)
+            worker_prompt = prompt_auditor(task, git_context, contributing_model=worker_model)
         else:
-            worker_prompt = prompt_engineer(task, context_slice, git_context)
             worker_model = self.state.worker_models.get("engineer", worker_model)
+            worker_prompt = prompt_engineer(task, context_slice, git_context, contributing_model=worker_model)
 
         logging.info(f"Dispatching task {task_id[:8]}...")
 
@@ -269,6 +291,7 @@ class Orchestrator:
             sig = collector.record_provenance(
                 agent_id="system", # aggregated agent
                 role="system",
+                contributing_model=worker_model,
                 action="task_completed",
                 artifact_ref=task_id
             )
@@ -277,6 +300,16 @@ class Orchestrator:
             # [v3.4] Git Interaction Nudge (Human-in-the-Loop)
             if self.git.is_available() and self.git.has_changes():
                  task.feedback_log.append("📝 Tip: You have uncommitted changes. To save, ask: 'Run git worker'")
+        else:
+            # [V3.5] Log Task Failure
+            sig = collector.record_provenance(
+                agent_id="system",
+                role="system",
+                contributing_model=worker_model,
+                action="task_failed",
+                artifact_ref=f"{task_id}:::{response.status}"
+            )
+            self.state.provenance_log.append(sig)
 
         self.state.tasks[task_id] = task
         self.state.tasks[task_id] = task
@@ -454,7 +487,6 @@ class Orchestrator:
             
             # Resolve Model (use git-writer / Gemini for efficiency)
             git_model = self.state.worker_models.get("git-writer", "gemini-3-flash-preview")
-            from mcp_core.llm import generate_response
             
             # 1. Branch Worker (if needed)
             if task.git_branch_name and task.git_branch_name not in str(task.feedback_log):
@@ -483,49 +515,70 @@ class Orchestrator:
                         "repo_owner": repo_owner,
                         "repo_name": repo_name,
                     }
-                    commit_prompt = prompt_git_commit(task, git_context)
+                    commit_prompt = prompt_git_commit(task, git_context, contributing_model=git_model)
                 
-                # [Cost Check] Use Cheap LLM to generate commit message
-                try:
-                    logging.info(f"💾 Generating commit message with {git_model}...")
-                    response = generate_response(commit_prompt, model_alias=git_model)
-                    
-                    # Extract the commit message/command from response tools or reasoning
-                    # Since generate_response returns AgentResponse, we check tool_calls
-                    # But prompt_git_commit asks to "Use IDE git tools", which implies the output should contain commands
-                    # The prompt format expects a textual tool usage.
-                    # Let's assume the LLM follows the prompt and we just log the reasoning/tool calls.
-                    
-                    if response.tool_calls:
-                       # [v3.5] Autonomous Execution (Local Git)
-                       execution_log = []
-                       for tool in response.tool_calls:
-                           import json
-                           try:
-                               args = json.loads(tool.arguments) if isinstance(tool.arguments, str) else tool.arguments
-                               result = self._execute_git_tool(tool.function, args)
-                               execution_log.append(result)
-                           except Exception as ex:
-                               execution_log.append(f"❌ Failed {tool.function}: {ex}")
-                       
-                       task.feedback_log.append(f"💾 Commit Worker Log:\n" + "\n".join(execution_log))
-                       
-                       # Add push confirmation prompt
-                       # task.feedback_log.append(
-                       #     "\n📤 **Ready to Push**\n"
-                       #     "Your commit is ready locally. To push to GitHub:\n"
-                       #     "1. Run: `git push` (manual)\n"
-                       #     "2. OR set `git_auto_push=True` in the task (autonomous)\n\n"
-                       #     "The system will NOT auto-push without explicit confirmation."
-                       # )
-                    else:
-                       task.feedback_log.append(f"💾 Commit Worker ({git_model}):\n{response.reasoning_trace}")
-                    
-                except Exception as e:
-                    logging.error(f"Git Generation Failed: {e}")
-                    task.feedback_log.append(f"Instructions: {commit_prompt[:200]}...")
+                    # [Cost Check] Use Cheap LLM to generate commit message
+                    try:
+                        logging.info(f"💾 Generating commit message with {git_model}...")
+                        response = generate_response(commit_prompt, model_alias=git_model)
+                        
+                        # Extract the commit message/command from response tools or reasoning
+                        # Since generate_response returns AgentResponse, we check tool_calls
+                        # But prompt_git_commit asks to "Use IDE git tools", which implies the output should contain commands
+                        # The prompt format expects a textual tool usage.
+                        # Let's assume the LLM follows the prompt and we just log the reasoning/tool calls.
+                        
+                        if response.tool_calls:
+                           # [v3.5] Autonomous Execution (Local Git)
+                           execution_log = []
+                           for tool in response.tool_calls:
+                               import json
+                               try:
+                                   args = json.loads(tool.arguments) if isinstance(tool.arguments, str) else tool.arguments
+                                   result = self._execute_git_tool(tool.function, args, contributing_model=git_model)
+                                   execution_log.append(result)
+                               except Exception as ex:
+                                   execution_log.append(f"❌ Failed {tool.function}: {ex}")
+                                   
+                                   # [Provenance] Log Git Tool Error
+                                   sig = collector.record_provenance(
+                                       agent_id="git-writer", 
+                                       role="engineer",
+                                       contributing_model=git_model,
+                                       action="git_error",
+                                       artifact_ref=f"{tool.function}: {str(ex)}"
+                                   )
+                                   self.state.provenance_log.append(sig)
+                           
+                           task.feedback_log.append(f"💾 Commit Worker Log:\n" + "\n".join(execution_log))
+                           
+                           # Add push confirmation prompt
+                           # task.feedback_log.append(
+                           #     "\n📤 **Ready to Push**\n"
+                           #     "Your commit is ready locally. To push to GitHub:\n"
+                           #     "1. Run: `git push` (manual)\n"
+                           #     "2. OR set `git_auto_push=True` in the task (autonomous)\n\n"
+                           #     "The system will NOT auto-push without explicit confirmation."
+                           # )
+                        else:
+                           task.feedback_log.append(f"💾 Commit Worker ({git_model}):\n{response.reasoning_trace}")
+                        
+                    except Exception as e:
+                        logging.error(f"Git Generation Failed: {e}")
+                        task.feedback_log.append(f"Instructions: {commit_prompt[:200]}...")
+                        
+                        # [Provenance] Log Git Gen Error
+                        sig = collector.record_provenance(
+                            agent_id="git-writer", 
+                            role="engineer",
+                            contributing_model=git_model,
+                            action="git_error",
+                            artifact_ref=f"Generation Failed: {str(e)}"
+                        )
+                        self.state.provenance_log.append(sig)
 
-                logging.info(f"✅ Commit Worker dispatched for {task.task_id[:8]}")
+
+                    logging.info(f"✅ Commit Worker dispatched for {task.task_id[:8]}")
             
             # 3. Push Worker (if auto-push enabled or PR requested)
             if task.git_auto_push or task.git_create_pr:
@@ -544,13 +597,23 @@ class Orchestrator:
                         result = self._execute_git_tool("git_push", {
                             "remote": "origin",
                             "branch": task.git_branch_name
-                        })
+                        }, contributing_model=git_model)
                         task.feedback_log.append(f"📤 Push Worker: {result}")
                         logging.info(f"✅ Push Worker dispatched for {task.task_id[:8]}")
+                        # Continue anyway - PR worker will fail gracefully
                     except Exception as e:
                         logging.error(f"Push failed: {e}")
                         task.feedback_log.append(f"❌ Push failed: {e}")
-                        # Continue anyway - PR worker will fail gracefully
+                        
+                        # [Provenance] Log Git Error
+                        sig = collector.record_provenance(
+                            agent_id="git-writer", 
+                            role="engineer",
+                            contributing_model=git_model,
+                            action="git_error",
+                            artifact_ref=str(e)
+                        )
+                        self.state.provenance_log.append(sig)
             
             # 4. Auto-PR for completed feature tasks (v3.2 Autonomous Mode)
             should_create_pr = task.git_create_pr
@@ -581,7 +644,7 @@ class Orchestrator:
                     "repo_owner": repo_owner,
                     "repo_name": repo_name,
                 }
-                pr_prompt = prompt_git_pr(task, git_context)
+                pr_prompt = prompt_git_pr(task, git_context, model_id=git_model)
                 
                 # [Cost Check] Use Cheap LLM to generate PR body
                 try:
@@ -606,9 +669,19 @@ class Orchestrator:
         except Exception as e:
             logging.error(f"Git workflow failed: {e}")
             task.feedback_log.append(f"Git workflow error: {e}")
+            
+            # [Provenance] Log Top-Level Git Error
+            sig = collector.record_provenance(
+                agent_id="system",
+                role="system",
+                action="git_workflow_error",
+                artifact_ref=str(e)
+            )
+            self.state.provenance_log.append(sig)
+            
             return False
 
-    def _execute_git_tool(self, tool_name: str, args: dict) -> str:
+    def _execute_git_tool(self, tool_name: str, args: dict, contributing_model: str = None) -> str:
         """Execute local Git operations autonomously."""
         import subprocess
         repo_path = str(self.git.repo_path)
@@ -651,6 +724,7 @@ class Orchestrator:
             sig = collector.record_provenance(
                 agent_id="git-writer",
                 role="engineer", 
+                contributing_model=contributing_model,
                 action="git_commit",
                 artifact_ref=message
             )

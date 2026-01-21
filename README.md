@@ -13,6 +13,7 @@
 
 [![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://docker.com)
+[![GHCR](https://img.shields.io/badge/GHCR-Pull-blue?style=for-the-badge&logo=github&logoColor=white)](https://github.com/orgs/${{ github.repository_owner }}/packages)
 [![MCP](https://img.shields.io/badge/MCP-Compatible-00ADD8?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyIDJMMiA3TDEyIDEyTDIyIDdMMTIgMloiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik0yIDEyTDEyIDE3TDIyIDEyIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiLz4KPC9zdmc+)](https://modelcontextprotocol.io)
 [![License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
 
@@ -116,7 +117,6 @@ flowchart LR
 
 ### 🧠 **Algorithmic Intelligence**
 - **HippoRAG**: AST-based knowledge graphs with Personalized PageRank
-- **OCC Validator**: Optimistic Concurrency Control for conflict-free edits
 - **Ochiai SBFL**: Statistical fault localization for debugging
 - **Z3 Verifier**: Formal verification using SMT solving
 - **CRDT Merger**: Conflict-Free Replicated Data Types
@@ -140,7 +140,6 @@ flowchart LR
 |---------|-------------|-----------|
 | **Search Method** | Basic keyword/regex | Hybrid semantic + keyword with auto-optimization |
 | **Code Understanding** | Text parsing | AST-based knowledge graphs with PageRank |
-| **Conflict Resolution** | Manual review | Automated OCC validation |
 | **Debugging** | Stack trace reading | Statistical fault localization (Ochiai) |
 | **Language Support** | Single or limited | Python, JavaScript, TypeScript (extensible) |
 | **Memory Management** | Stateless | Rolling memory with active/archive tiers |
@@ -182,13 +181,13 @@ docker compose up -d --build
 ```bash
 git clone https://github.com/yourusername/swarm.git
 cd swarm
-pip install -r requirements.txt
+pip install .
 
 # Run as MCP server
-python server.py
+python server.py --sse
 
 # Or use CLI directly
-python orchestrator.py status
+swarm status
 ```
 
 </details>
@@ -198,6 +197,30 @@ python orchestrator.py status
 
 
 ## ✨ Features Deep Dive
+
+### 🧠 External Memory Integration
+
+Project Swarm integrates seamlessly with the [Knowledge Graph Memory Server](https://github.com/modelcontextprotocol/servers/tree/main/src/memory). We recommend running it in an isolated container for persistent storage.
+
+**Setup for Antigravity / Cursor:**
+```json
+{
+  "mcpServers": {
+    "memory": {
+      "command": "docker",
+      "args": [
+        "run", "-i", "--rm",
+        "-v", "${HOME}/.antigravity/memory.json:/app/memory.json",
+        "node:18-alpine",
+        "npx", "-y", "@modelcontextprotocol/server-memory",
+        "/app/memory.json"
+      ]
+    }
+  }
+}
+```
+
+---
 
 ### 🧠 **HippoRAG: Deep Code Understanding**
 
