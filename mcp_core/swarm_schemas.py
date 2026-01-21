@@ -76,7 +76,8 @@ class AuthorSignature(BaseModel):
     role: Literal["architect", "engineer", "auditor", "system"]
     timestamp: datetime = Field(default_factory=datetime.now)
     action: str  # e.g., "created", "modified", "approved"
-    signature: Optional[str] = None  # Git provides attribution for IDE usage
+    artifact_ref: Optional[str] = None # The file or task ID being signed
+    signature: Optional[str] = None  # Git provides attribution for Ide usage
 
 
 class Task(BaseModel):

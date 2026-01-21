@@ -37,7 +37,7 @@ class CRDTMerger:
     Provides strong eventual consistency for multi-agent collaborative editing.
     Each character has a unique ID (agent_id, position), ensuring no interleaving.
     """
-    
+
     def __init__(self):
         """Initialize CRDT merger with document registry"""
         if not PYCRDT_AVAILABLE:

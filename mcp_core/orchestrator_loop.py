@@ -8,7 +8,7 @@ from filelock import FileLock
 from datetime import datetime
 
 # V2 Core
-from mcp_core.swarm_schemas import ProjectProfile, Task
+from mcp_core.swarm_schemas import ProjectProfile, Task, DeliberationResult, DeliberationStep
 from mcp_core.stack_detector import StackDetector
 from mcp_core.toolchain_manager import ToolchainManager
 from mcp_core.worker_prompts import prompt_architect, prompt_engineer, prompt_auditor
@@ -21,6 +21,7 @@ from mcp_core.algorithms import (
     Z3Verifier, OchiaiLocalizer, GitWorker
 )
 from mcp_core.sync.sync_engine import SyncEngine
+from mcp_core.telemetry.collector import collector
 
 STATE_FILE = "project_profile.json"
 LEGACY_STATE_FILE = "blackboard_state.json"
@@ -161,7 +162,7 @@ class Orchestrator:
 
         try:
             with FileLock(self.lock_file, timeout=5):
-                with open(self.state_file, "r") as f:
+                with open(self.state_file, "r", encoding="utf-8") as f:
                     data = json.load(f)
                     self.state = ProjectProfile(**data)
                     logging.info(f"✅ Loaded state from {self.state_file}")
@@ -173,7 +174,7 @@ class Orchestrator:
         """Save orchestrator state to disk with error handling"""
         try:
             with FileLock(self.lock_file, timeout=5):
-                with open(self.state_file, "w") as f:
+                with open(self.state_file, "w", encoding="utf-8") as f:
                     f.write(self.state.model_dump_json(indent=2))
                 logging.debug(f"State saved to {self.state_file}")
         except Exception as e:
@@ -264,6 +265,14 @@ class Orchestrator:
         task.feedback_log.append(f"Worker execution: {response.status}")
         if response.status == "SUCCESS":
             task.status = "COMPLETED"
+
+            sig = collector.record_provenance(
+                agent_id="system", # aggregated agent
+                role="system",
+                action="task_completed",
+                artifact_ref=task_id
+            )
+            self.state.provenance_log.append(sig)
             
             # [v3.4] Git Interaction Nudge (Human-in-the-Loop)
             if self.git.is_available() and self.git.has_changes():
@@ -637,6 +646,16 @@ class Orchestrator:
         elif tool_name == "git_commit":
             message = args.get("message", "Automated commit")
             subprocess.run(["git", "commit", "-m", message], cwd=repo_path, check=True)
+            
+            # [Provenance]: Log Commit
+            sig = collector.record_provenance(
+                agent_id="git-writer",
+                role="engineer", 
+                action="git_commit",
+                artifact_ref=message
+            )
+            self.state.provenance_log.append(sig)
+            
             return f"✅ Committed: {message}"
 
         elif tool_name == "git_push":
@@ -665,7 +684,6 @@ class Orchestrator:
         This is the alternative to "sequential thinking" - each step uses 
         deterministic algorithms instead of pure LLM reasoning.
         """
-        from mcp_core.swarm_schemas import DeliberationResult, DeliberationStep
         from mcp_core.worker_prompts import prompt_synthesizer
         import time
         import uuid
