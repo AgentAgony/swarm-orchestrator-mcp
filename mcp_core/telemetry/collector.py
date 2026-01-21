@@ -91,7 +91,7 @@ class TelemetryCollector:
             return wrapper
         return decorator
 
-    def record_provenance(self, agent_id: str, role: str, action: str, artifact_ref: str = None) -> AuthorSignature:
+    def record_provenance(self, agent_id: str, role: str, action: str, contributing_model: str = None, artifact_ref: str = None) -> AuthorSignature:
         """
         Record a provenance event and return the signature for state containment.
         """
@@ -99,6 +99,7 @@ class TelemetryCollector:
         signature = AuthorSignature(
             agent_id=agent_id,
             role=role,
+            contributing_model=contributing_model,
             action=action,
             artifact_ref=artifact_ref,
             signature=self.install_id  # using install_id as a proxy for now

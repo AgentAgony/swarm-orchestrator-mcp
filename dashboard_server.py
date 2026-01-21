@@ -63,6 +63,64 @@ async def get_tasks():
     orch = get_orchestrator()
     return list(orch.state.tasks.values())
 
+@app.get("/api/memory")
+async def get_memory():
+    orch = get_orchestrator()
+    return {
+        "provenance": orch.state.provenance_log,
+        "worker_models": orch.state.worker_models,
+        "toolchain": orch.state.toolchain_config.dict() if orch.state.toolchain_config else None,
+        "stack": orch.state.stack_fingerprint.dict() if orch.state.stack_fingerprint else None
+    }
+
+@app.get("/api/docs")
+async def list_docs():
+    """Returns a list of available documentation files."""
+    docs = [
+        {"id": "README.md", "label": "README"},
+        {"id": "ARCHITECTURE.md", "label": "Architecture"},
+        {"id": "CONTRIBUTING.md", "label": "Contributing"},
+        {"id": "CHANGELOG.md", "label": "Changelog"},
+        {"id": "SECURITY.md", "label": "Security"}
+    ]
+    
+    for folder in ["human", "ai"]:
+        docs_dir = ROOT_DIR / "docs" / folder
+        if docs_dir.exists():
+            for f in docs_dir.glob("*.md"):
+                docs.append({"id": f"{folder}/{f.name}", "label": f"{folder.upper()} - {f.stem}"})
+    
+    return docs
+
+@app.get("/api/docs/{filename:path}")
+async def get_doc_file(filename: str):
+    """Serves the content of markdown files from the root and docs/ directory."""
+    # Whitelist allowed documentation files to avoid path traversal
+    allowed_files = {
+        "README.md": ROOT_DIR / "README.md",
+        "ARCHITECTURE.md": ROOT_DIR / "ARCHITECTURE.md",
+        "CONTRIBUTING.md": ROOT_DIR / "CONTRIBUTING.md",
+        "CHANGELOG.md": ROOT_DIR / "CHANGELOG.md",
+        "SECURITY.md": ROOT_DIR / "SECURITY.md"
+    }
+    
+    # Also allow files in docs/human/ and docs/ai/
+    for folder in ["human", "ai"]:
+        docs_dir = ROOT_DIR / "docs" / folder
+        if docs_dir.exists():
+            for f in docs_dir.glob("*.md"):
+                allowed_files[f"{folder}/{f.name}"] = f
+
+    if filename not in allowed_files:
+        raise HTTPException(status_code=404, detail="Document not found")
+        
+    doc_path = allowed_files[filename]
+    if not doc_path.exists():
+        raise HTTPException(status_code=404, detail="Document file missing")
+        
+    with open(doc_path, "r", encoding="utf-8") as f:
+        return {"filename": filename, "content": f.read()}
+
 @app.get("/api/graph")
 async def get_graph(limit: int = 500):
     """Returns nodes and edges for force-graph visualization.

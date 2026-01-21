@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Route, Link, useLocation } from 'wouter';
-import { LayoutDashboard, Database, Network, ListChecks, Settings, Activity, Book } from 'lucide-react';
+import { LayoutDashboard, Database, Network, ListChecks, Settings as SettingsIcon, Activity, Book } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import './styles/design_system.css';
 import './App.css';
@@ -9,6 +9,8 @@ import Overview from './views/Overview';
 import TaskBoard from './views/TaskBoard';
 import KnowledgeGraph from './views/KnowledgeGraph';
 import DocsPage from './views/DocsPage';
+import Memory from './views/Memory';
+import Settings from './views/Settings';
 
 import { useSwarmData } from './hooks/useSwarmData';
 
@@ -75,7 +77,7 @@ function App() {
         <div className="nav-footer">
           <Link href="/settings">
             <a className={location === '/settings' ? 'active' : ''}>
-              <Settings size={20} />
+              <SettingsIcon size={20} />
               <span>Settings</span>
             </a>
           </Link>
@@ -97,12 +99,8 @@ function App() {
             <Route path="/graph" component={KnowledgeGraph} />
             <Route path="/tasks" component={TaskBoard} />
             <Route path="/docs" component={DocsPage} />
-            <Route path="/memory" component={() => (
-               <div className="page-content">
-                <h1 className="gradient-text">Memory System</h1>
-                <p style={{color: 'var(--text-secondary)'}}>Active Context Management (Coming Soon)</p>
-               </div>
-            )} />
+            <Route path="/memory" component={Memory} />
+            <Route path="/settings" component={Settings} />
           </motion.div>
         </AnimatePresence>
       </main>

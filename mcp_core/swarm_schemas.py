@@ -74,6 +74,7 @@ class AuthorSignature(BaseModel):
     """Cryptographic provenance for an artifact change."""
     agent_id: str
     role: Literal["architect", "engineer", "auditor", "system"]
+    contributing_model: Optional[str] = None # The actual model used (e.g. gpt-4, llama-3.2-3b)
     timestamp: datetime = Field(default_factory=datetime.now)
     action: str  # e.g., "created", "modified", "approved"
     artifact_ref: Optional[str] = None # The file or task ID being signed
@@ -93,7 +94,7 @@ class Task(BaseModel):
     output_files: List[str] = Field(default_factory=list, description="Files expected to change")
 
     # [v3.0: Algorithm Dispatch Flags]
-    conflicts_detected: bool = Field(default=False, description="Trigger OCC validator")
+    conflicts_detected: bool = Field(default=False, description="Trigger external conflict resolution")
     concurrent_edits: bool = Field(default=False, description="Trigger CRDT merger")
     context_needed: bool = Field(default=False, description="Trigger HippoRAG retrieval")
     requires_consensus: bool = Field(default=False, description="Trigger weighted voting")

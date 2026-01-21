@@ -53,6 +53,7 @@ class TestProvenanceIntegration(unittest.TestCase):
         self.assertEqual(entry.action, "task_completed")
         self.assertEqual(entry.artifact_ref, task.task_id)
         self.assertEqual(entry.role, "system")
+        self.assertIsNotNone(entry.contributing_model, "Contributing model should be recorded in provenance")
         
         print("✅ Integration test passed!")
 
