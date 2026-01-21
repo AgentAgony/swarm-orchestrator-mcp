@@ -64,6 +64,41 @@ MODEL_ID: {contributing_model or 'Unknown'}
 </mission>
 """
 
+def prompt_debugger(task: Any, memory: Dict[str, Any], context: Dict[str, Any], contributing_model: str = None) -> str:
+    """Generates the prompt for the Debugger worker using the debugging skill."""
+    skill_content = _load_skill("debugger.md")
+    
+    # Include test output if available
+    test_output = context.get("test_output", "No test output provided")
+    
+    return f"""
+{skill_content}
+
+<mission>
+Diagnose and fix failing test(s):
+TASK: {task.description}
+TEST OUTPUT: {test_output}
+CONTEXT: {context}
+MEMORY: {memory}
+MODEL_ID: {contributing_model or 'Unknown'}
+</mission>
+"""
+
+def prompt_researcher(task: Any, memory: Dict[str, Any], contributing_model: str = None) -> str:
+    """Generates the prompt for the Researcher worker using the research skill."""
+    skill_content = _load_skill("researcher.md")
+    
+    return f"""
+{skill_content}
+
+<mission>
+Research and document findings:
+QUESTION: {task.description}
+CONTEXT: {memory}
+MODEL_ID: {contributing_model or 'Unknown'}
+</mission>
+"""
+
 def prompt_toolsmith(task: Any, context: Dict[str, Any]) -> str:
     """Generates the prompt for the Toolsmith worker using the tool creation skill."""
     skill_content = _load_skill("tool-creation.md")

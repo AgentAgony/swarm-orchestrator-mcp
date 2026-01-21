@@ -11,7 +11,11 @@ from datetime import datetime
 from mcp_core.swarm_schemas import ProjectProfile, Task, DeliberationResult, DeliberationStep
 from mcp_core.stack_detector import StackDetector
 from mcp_core.toolchain_manager import ToolchainManager
-from mcp_core.worker_prompts import prompt_architect, prompt_engineer, prompt_auditor
+from mcp_core.worker_prompts import (
+    prompt_architect, prompt_engineer, prompt_auditor,
+    prompt_debugger, prompt_researcher,
+    prompt_git_commit, prompt_git_pr
+)
 from mcp_core.llm import generate_response
 
 # V3.0 Algorithms
@@ -274,10 +278,13 @@ class Orchestrator:
             self.save_state()
             return
 
-        # [Fix: Context] Pruning logic
-        # Instead of self.state.memory_bank (which could be huge), we just pass key items
-        # For now, we still pass it, but this is where the RollingWindow would go.
-        context_slice = self.state.memory_bank
+        # [Phase 3] Sliding window for context optimization
+        # Only pass last N relevant entries to reduce token usage
+        MAX_MEMORY_ITEMS = 10
+        if len(self.state.memory_bank) > MAX_MEMORY_ITEMS:
+            context_slice = dict(list(self.state.memory_bank.items())[-MAX_MEMORY_ITEMS:])
+        else:
+            context_slice = self.state.memory_bank
         
         # [v3.1: Git Context Injection]
         git_context = {}
@@ -290,6 +297,7 @@ class Orchestrator:
         worker_prompt = ""
         worker_model = self.state.worker_models.get("default", "gemini-pro")
 
+<<<<<<< HEAD
         if "plan" in task.description.lower():
             worker_model = self.state.worker_models.get("architect", worker_model)
             worker_prompt = prompt_architect(task, context_slice, contributing_model=worker_model)
@@ -298,6 +306,36 @@ class Orchestrator:
             worker_prompt = prompt_auditor(task, git_context, contributing_model=worker_model)
         else:
             worker_model = self.state.worker_models.get("engineer", worker_model)
+=======
+        # [Phase 2] Respect assigned_worker from Task schema first
+        role = None
+        if task.assigned_worker:
+            role = task.assigned_worker.lower()
+        elif task.tests_failing:
+            role = "debugger"
+        elif "research" in task.description.lower() or "investigate" in task.description.lower():
+            role = "researcher"
+        elif "plan" in task.description.lower():
+            role = "architect"
+        elif "audit" in task.description.lower():
+            role = "auditor"
+        else:
+            role = "engineer"
+        
+        # Get role-specific model if configured
+        worker_model = self.state.worker_models.get(role, worker_model)
+        
+        # Generate role-specific prompt
+        if role == "architect":
+            worker_prompt = prompt_architect(task, context_slice, contributing_model=worker_model)
+        elif role == "auditor":
+            worker_prompt = prompt_auditor(task, git_context, contributing_model=worker_model)
+        elif role == "debugger":
+            worker_prompt = prompt_debugger(task, context_slice, git_context, contributing_model=worker_model)
+        elif role == "researcher":
+            worker_prompt = prompt_researcher(task, context_slice, contributing_model=worker_model)
+        else:  # engineer (default)
+>>>>>>> origin/dev
             worker_prompt = prompt_engineer(task, context_slice, git_context, contributing_model=worker_model)
 
         logging.info(f"Dispatching task {task_id[:8]}...")
@@ -314,6 +352,23 @@ class Orchestrator:
         response = generate_response(worker_prompt, model_alias=worker_model)
 
         task.feedback_log.append(f"Worker execution: {response.status}")
+
+        # [Phase 2] Check for role handoff request
+        if response.reasoning_trace and "<handoff_to" in response.reasoning_trace:
+            handoff_role, handoff_reason = self._parse_handoff(response.reasoning_trace)
+            if handoff_role:
+                logging.info(f"🔄 Role handoff detected: {role} → {handoff_role}")
+                # Create new task for handoff
+                handoff_task = Task(
+                    description=f"[Handoff from {role}] {handoff_reason or task.description}",
+                    assigned_worker=handoff_role,
+                    input_files=task.input_files,
+                    output_files=task.output_files
+                )
+                self.state.add_task(handoff_task)
+                task.feedback_log.append(f"🔄 Handed off to {handoff_role}: {handoff_task.task_id[:8]}")
+                logging.info(f"Created handoff task: {handoff_task.task_id[:8]}")
+
         if response.status == "SUCCESS":
             task.status = "COMPLETED"
 
@@ -796,7 +851,22 @@ class Orchestrator:
             subprocess.run(["git", "push", remote, branch], cwd=repo_path, check=True)
             return f"✅ Pushed to {remote}/{branch}"
 
-        return f"⚠️ Unknown tool: {tool_name}"
+        return f"❌ Unknown git tool: {tool_name}"
+    
+    def _parse_handoff(self, reasoning_trace: str) -> tuple[str, str]:
+        """Parse <handoff_to role="X">reason</handoff_to> from reasoning trace."""
+        import re
+        
+        # Match: <handoff_to role="auditor">reason text</handoff_to>
+        pattern = r'<handoff_to\s+role="(\w+)"[^>]*>([^<]*)</handoff_to>'
+        match = re.search(pattern, reasoning_trace)
+        
+        if match:
+            role = match.group(1)
+            reason = match.group(2).strip()
+            return (role, reason)
+        
+        return (None, None)
 
     # ========================================================================
     # V3.3: Structured Deliberation
