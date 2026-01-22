@@ -14,6 +14,7 @@ sys.path.append(str(Path(__file__).parent))
 from mcp_core.orchestrator_loop import Orchestrator
 from mcp_core.search_engine import CodebaseIndexer, IndexConfig
 from mcp_core.algorithms.hipporag_retriever import HippoRAGRetriever
+from mcp_core.telemetry.telemetry_analytics import TelemetryAnalyticsService
 
 app = FastAPI(title="Swarm Admin API")
 
@@ -27,6 +28,13 @@ app.add_middleware(
 
 # Mock/Load actual data
 _orchestrator = None
+_analytics = None
+
+def get_analytics():
+    global _analytics
+    if _analytics is None:
+        _analytics = TelemetryAnalyticsService()
+    return _analytics
 
 def get_orchestrator():
     global _orchestrator
@@ -175,6 +183,23 @@ async def get_graph(limit: int = 500):
     except Exception as e:
         print(f"Error serving graph: {e}")
         return {"nodes": [], "links": []}
+
+@app.get("/api/analytics/tools")
+async def get_tool_analytics(days: int = 7):
+    """Get success rates for problematic tools."""
+    analytics = get_analytics()
+    return analytics.get_problematic_tools(threshold=1.0, window_days=days)
+
+@app.get("/api/analytics/roles")
+async def get_role_analytics():
+    """Get success rates for all git roles."""
+    analytics = get_analytics()
+    roles = ["feature_scout", "code_auditor", "issue_triage", "branch_manager", "project_lifecycle"]
+    stats = []
+    for role in roles:
+        rate = analytics.get_role_success_rate(role)
+        stats.append({"role": role, "success_rate": rate})
+    return stats
 
 # Serve static files from React build
 ROOT_DIR = Path(__file__).parent.absolute()

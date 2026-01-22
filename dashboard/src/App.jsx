@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Route, Link, useLocation } from 'wouter';
-import { LayoutDashboard, Database, Network, ListChecks, Settings as SettingsIcon, Activity, Book } from 'lucide-react';
+import { LayoutDashboard, Database, Network, ListChecks, Settings as SettingsIcon, Activity, Book, BarChart3 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import './styles/design_system.css';
 import './App.css';
@@ -11,6 +11,7 @@ import KnowledgeGraph from './views/KnowledgeGraph';
 import DocsPage from './views/DocsPage';
 import Memory from './views/Memory';
 import Settings from './views/Settings';
+import Analytics from './views/Analytics';
 
 import { useSwarmData } from './hooks/useSwarmData';
 
@@ -72,6 +73,14 @@ function App() {
               </a>
             </Link>
           </li>
+          <li>
+            <Link href="/analytics">
+              <a className={location === '/analytics' ? 'active' : ''}>
+                <BarChart3 size={20} />
+                <span>Analytics</span>
+              </a>
+            </Link>
+          </li>
         </ul>
 
         <div className="nav-footer">
@@ -100,6 +109,7 @@ function App() {
             <Route path="/tasks" component={TaskBoard} />
             <Route path="/docs" component={DocsPage} />
             <Route path="/memory" component={Memory} />
+            <Route path="/analytics" component={Analytics} />
             <Route path="/settings" component={Settings} />
           </motion.div>
         </AnimatePresence>

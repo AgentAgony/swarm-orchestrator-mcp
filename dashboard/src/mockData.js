@@ -99,3 +99,19 @@ export const MOCK_ARCHITECTURE = {
         { source: 'arch::payment_svc', target: 'arch::auth_svc', type: 'grpc' },
     ]
 };
+
+// Telemetry Analytics Mocks
+export const MOCK_ANALYTICS_TOOLS = [
+    { tool: 'search_codebase', success_rate: 0.45, total_uses: 22 },
+    { tool: 'hipporag_retrieve', success_rate: 0.65, total_uses: 18 },
+    { tool: 'grep_search', success_rate: 0.95, total_uses: 45 },
+    { tool: 'view_file', success_rate: 0.98, total_uses: 120 }
+];
+
+export const MOCK_ANALYTICS_ROLES = [
+    { role: 'feature_scout', success_rate: 0.75 },
+    { role: 'code_auditor', success_rate: 0.90 },
+    { role: 'issue_triage', success_rate: 0.85 },
+    { role: 'branch_manager', success_rate: 0.95 },
+    { role: 'project_lifecycle', success_rate: 0.70 }
+];

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { MOCK_STATUS, MOCK_TASKS, MOCK_GRAPH } from '../mockData';
+import { MOCK_STATUS, MOCK_TASKS, MOCK_GRAPH, MOCK_ANALYTICS_TOOLS, MOCK_ANALYTICS_ROLES } from '../mockData';
 
 const API_BASE = '/api';
 
@@ -32,6 +32,8 @@ export function useSwarmData(endpoint, interval = 5000) {
                     if (endpoint.includes('status')) mock = MOCK_STATUS;
                     else if (endpoint.includes('tasks')) mock = MOCK_TASKS;
                     else if (endpoint.includes('graph')) mock = MOCK_GRAPH;
+                    else if (endpoint.includes('analytics/tools')) mock = MOCK_ANALYTICS_TOOLS;
+                    else if (endpoint.includes('analytics/roles')) mock = MOCK_ANALYTICS_ROLES;
 
                     if (mock) {
                         setData(mock);

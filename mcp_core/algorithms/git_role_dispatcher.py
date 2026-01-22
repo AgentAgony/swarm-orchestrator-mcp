@@ -11,6 +11,7 @@ from mcp_core.algorithms.git_roles.code_auditor import CodeAuditorRole
 from mcp_core.algorithms.git_roles.issue_triage import IssueTriageRole
 from mcp_core.algorithms.git_roles.branch_manager import BranchManagerRole
 from mcp_core.algorithms.git_roles.project_lifecycle import ProjectLifecycleRole
+from mcp_core.telemetry.telemetry_analytics import TelemetryAnalyticsService
 
 
 class GitRoleDispatcher:
@@ -27,6 +28,7 @@ class GitRoleDispatcher:
             GitRole.BRANCH_MANAGER: BranchManagerRole(),
             GitRole.PROJECT_LIFECYCLE: ProjectLifecycleRole()
         }
+        self.analytics = TelemetryAnalyticsService()
     
     def dispatch(self, task: Task) -> List[ExitReport]:
         """
@@ -37,13 +39,8 @@ class GitRoleDispatcher:
         
         # Check and execute each role sequentially
         # Order matters: lifecycle/triage -> scout -> auditor -> manager
-        execution_order = [
-            GitRole.PROJECT_LIFECYCLE,
-            GitRole.ISSUE_TRIAGE,
-            GitRole.FEATURE_SCOUT,
-            GitRole.CODE_AUDITOR,
-            GitRole.BRANCH_MANAGER
-        ]
+        # Order matters: lifecycle/triage -> scout -> auditor -> manager
+        execution_order = self._get_optimized_execution_order()
         
         for role_key in execution_order:
             role = self.roles[role_key]
@@ -65,6 +62,34 @@ class GitRoleDispatcher:
                     ))
         
         return reports
+
+    def _get_optimized_execution_order(self) -> List[GitRole]:
+        """
+        [V3.8: Adaptive Telemetry] Performance Index scoring.
+        PI = (SuccessRate * 0.7) + (SpeedScore * 0.3)
+        High-PI roles run first.
+        """
+        default_order = [
+            GitRole.PROJECT_LIFECYCLE,
+            GitRole.ISSUE_TRIAGE,
+            GitRole.FEATURE_SCOUT,
+            GitRole.CODE_AUDITOR,
+            GitRole.BRANCH_MANAGER
+        ]
+        
+        # Calculate Performance Index for each role
+        scored_roles = []
+        for role_key in default_order:
+            role_name = role_key.value
+            pi = self.analytics.get_performance_index(role_name)
+            scored_roles.append((role_key, pi))
+            logging.debug(f"Role {role_name}: PI = {pi:.2f}")
+            
+        # Sort by PI (descending - higher is better)
+        scored_roles.sort(key=lambda x: x[1], reverse=True)
+        logging.info(f"🎯 PI-optimized order: {[r[0].value for r in scored_roles]}")
+        
+        return [r[0] for r in scored_roles]
     
     def _prepare_context(self, task: Task) -> Dict[str, Any]:
         """
