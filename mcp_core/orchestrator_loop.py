@@ -78,9 +78,6 @@ class Orchestrator:
         self._sync = None
         self._pruner = None
         
-<<<<<<< HEAD
-        logging.info(f"✅ Orchestrator initialized (session: {self.session_id[:8]}, SQL: {self._sql_enabled})")
-=======
         # [V3.8: Telemetry Analytics]
         self.analytics = TelemetryAnalyticsService()
         
@@ -95,63 +92,6 @@ class Orchestrator:
             logging.warning(f"Telemetry maintenance warning: {e}")
         
         logging.info(f"✅ Orchestrator initialized (session: {self.session_id[:8]}, SQL: {self._sql_enabled})")
-
-    def check_loop_state(self, task: Task) -> bool:
-        """
-        [v3.4] Deterministic Loop Detection
-        
-        Returns True if the task is stuck in a loop (same state hash repeated).
-        Uses the last N provenance log entries to compute a state fingerprint.
-        """
-        max_loops = int(os.getenv("SWARM_MAX_LOOPS", "3"))
-        window_size = 3  # Number of recent provenance entries to hash
-        
-        if len(self.state.provenance_log) < window_size:
-            return False  # Not enough history to detect loops
-        
-        # Get last N provenance signatures
-        recent_sigs = self.state.provenance_log[-window_size:]
-        
-        # Create state hash from (action, artifact_ref, status-like info)
-        import hashlib
-        state_repr = "|".join([
-            f"{sig.action}:{sig.artifact_ref or 'none'}"
-            for sig in recent_sigs
-        ])
-        current_hash = hashlib.md5(state_repr.encode()).hexdigest()
-        
-        # Check if this hash has repeated too many times in recent history
-        # Look back through provenance to count occurrences
-        hash_count = 0
-        check_window = min(len(self.state.provenance_log), window_size * max_loops * 2)
-        
-        for i in range(len(self.state.provenance_log) - window_size, 
-                       max(0, len(self.state.provenance_log) - check_window), 
-                       -window_size):
-            if i < 0:
-                break
-            
-            chunk = self.state.provenance_log[i:i+window_size]
-            if len(chunk) == window_size:
-                chunk_repr = "|".join([
-                    f"{sig.action}:{sig.artifact_ref or 'none'}"
-                    for sig in chunk
-                ])
-                chunk_hash = hashlib.md5(chunk_repr.encode()).hexdigest()
-                
-                if chunk_hash == current_hash:
-                    hash_count += 1
-        
-        if hash_count >= max_loops:
-            logging.warning(f"🔁 Loop detected! State hash repeated {hash_count}x (max: {max_loops})")
-            task.feedback_log.append(
-                f"⚠️ Loop Detection: Same action sequence repeated {hash_count} times. "
-                f"Breaking loop to prevent infinite cycle."
-            )
-            return True
-        
-        return False
->>>>>>> feature/self-healing-git-agents
 
     def _ensure_migration(self):
         """Auto-Archive Legacy State Logic."""
