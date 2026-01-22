@@ -26,7 +26,24 @@ LOCAL_LLM_URL=http://localhost:11434/v1
 
 # System-Wide Lite Mode
 # Set to 'true' to force keyword-only search and skip heavy parsers
+# Set to 'true' to force keyword-only search and skip heavy parsers
 SWARM_LITE_MODE=false
+
+### Debug Configuration
+
+```bash
+# Enable Global Debug Mode (enables verbose logging and debug tools)
+SWARM_DEBUG=true
+
+# Enable Verbose Telemetry (logs full tool arguments and timing)
+SWARM_VERBOSE_TELEMETRY=true
+
+# Enable Automatic Fault Localization on Test Failure
+SWARM_SBFL_ENABLED=true
+
+# Enable LLM Prompt Tracing (logs first 500 chars of prompts)
+SWARM_TRACE_PROMPTS=true
+```
 ```
 
 ---

@@ -12,7 +12,7 @@ from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
 
-app = typer.Typer(help="Swarm Orchestrator v3.2 CLI")
+app = typer.Typer(help="Swarm Orchestrator v3.4.0 CLI")
 console = Console()
 
 
@@ -497,6 +497,56 @@ def benchmark() -> None:
             title="[bold]v3.0 Performance Summary[/bold]"
         ))
         
+    except Exception as e:
+        console.print(f"[bold red]Error: {e}[/bold red]")
+        raise typer.Exit(code=1)
+
+
+
+@app.command()
+def release(
+    bump: str = typer.Argument(..., help="major, minor, or patch"),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Simulate changes without writing")
+):
+    """
+    Automate the release process: bump version, update changelog, and tag.
+    """
+    if bump not in ["major", "minor", "patch"]:
+        console.print("[bold red]Error: Bump type must be 'major', 'minor', or 'patch'[/bold red]")
+        raise typer.Exit(code=1)
+
+    try:
+        from mcp_core.lifecycle import VersionManager
+        
+        vm = VersionManager(".")
+        current_ver = vm.get_current_version()
+        console.print(f"📦 Current version: [cyan]{current_ver}[/cyan]")
+
+        if dry_run:
+            console.print(f"[yellow][Dry Run] Would bump '{bump}'[/yellow]")
+            console.print("[yellow][Dry Run] Would update pyproject.toml and CHANGELOG.md[/yellow]")
+            return
+
+        # 1. Bump Version
+        new_ver = vm.bump_version(bump)
+        console.print(f"🚀 Bumping to [bold green]{new_ver}[/bold green]...")
+
+        # 2. Update Changelog
+        vm.update_changelog(new_ver)
+        console.print("📝 Updated CHANGELOG.md")
+
+        # 3. Git Operations (Instructions for now)
+        console.print("\n[bold green]✅ Release preparation complete![/bold green]")
+        console.print(Panel(
+            f"Next Steps:\n\n"
+            f"  git add pyproject.toml CHANGELOG.md\n"
+            f"  git commit -m 'chore(release): prepare v{new_ver}'\n"
+            f"  git tag v{new_ver}\n"
+            f"  git push origin main --tags",
+            title=f"Release v{new_ver} Ready",
+            border_style="green"
+        ))
+
     except Exception as e:
         console.print(f"[bold red]Error: {e}[/bold red]")
         raise typer.Exit(code=1)

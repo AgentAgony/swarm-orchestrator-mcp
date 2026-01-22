@@ -398,6 +398,14 @@ index_codebase(provider="local")   # Offline, no API costs (~60-120s)
 
 We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
+### 🐛 Development Mode
+To enable advanced debugging features (SBFL, Verbose Telemetry), add these to your `.env` (do not commit them):
+```bash
+SWARM_DEBUG=true
+SWARM_VERBOSE_TELEMETRY=true
+```
+This enables the "🐛 DEV MODE" banner and ensures you have full visibility into the orchestrator's internal tools.
+
 ### 🎯 Areas We Need Help
 - [ ] Parser plugins for Go, Rust, Java
 - [ ] Performance benchmarks for large codebases (>100k files)

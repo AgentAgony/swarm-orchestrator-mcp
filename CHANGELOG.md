@@ -2,6 +2,23 @@
 
 All notable changes to Project Swarm will be documented in this file.
 
+## [3.4.0] - 2026-01-21
+
+### 🛠️ Dev Build & Debug Features
+- **Global Debug Mode**: Introduced `SWARM_DEBUG` env var to toggle debug capabilities.
+  - Activates `DEBUG` level logging.
+  - Loads debug-only tools (e.g., `mcp_transport_debug.py`).
+  - Displays "🐛 DEV MODE" banner on server startup.
+- **Verbose Telemetry**: `SWARM_VERBOSE_TELEMETRY` now logs full tool arguments and execution timing in `collector.py`.
+- **SBFL Toggle**: `SWARM_SBFL_ENABLED` allows disabling expensive Ochiai fault localization in production.
+- **Prompt Tracing**: `SWARM_TRACE_PROMPTS` logs truncated inputs to LLMs for prompt engineering.
+- **Dev-First Workflow**: Updated contribution guidelines to use `dev` branch as the default integration point.
+
+### 🧹 Version Synchronization
+- **VersionManager**: Added `sync_versions()` to align `server.py`, `orchestrator.py`, and `swarm_schemas.py` with `pyproject.toml`.
+
+---
+
 ## [3.3.0] - 2026-01-21
 
 ### 🤖 Autonomous Git Engine
@@ -138,6 +155,12 @@ All notable changes to Project Swarm will be documented in this file.
   
 ### Removed
 - **Legacy Algorithms**: Removed **OCR Validator** and **CRDT Merger** (superseded by Autonomous Git Worker Team).
+
+### Infrastructure
+- **Lifecycle Manager**: Added `VersionManager` and `release` CLI command for automated versioning and changelog management.
+- **Git Worker**: Updated prompts to enforce Conventional Commits (type/scope/desc) and helpful context (Why/What).
+- **GitHub**: Verified Issue Templates and Actions workflows.
+
 
 ---
 

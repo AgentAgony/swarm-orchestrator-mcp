@@ -40,7 +40,7 @@ if DEBUG_MODE:
     logger.info("   - Prompt tracing: ON")
 
 # Initialize FastMCP server
-mcp = FastMCP("Swarm Orchestrator v3.0")
+mcp = FastMCP("Swarm Orchestrator v3.4.0")
 
 # Load dynamic tools
 try:

@@ -156,7 +156,18 @@ Git repository detected. After completing file changes:
 1. Use external MCP tools for Git operations:
    - git_status: Check current repository state
    - git_add: Stage modified files
-   - git_commit: Commit with descriptive message
+   - git_commit: Commit with HELPFUL message.
+     Format: `type(scope): description`
+     
+     REQUIRED: You MUST include a "Why" and "What" in the body.
+     Example:
+     ```
+     feat(auth): enable jwt token refresh
+
+     Why: User sessions were timing out unexpectedly.
+     What: Added refresh endpoint and client-side interceptor.
+     Task: #123
+     ```
 """
         
         if self.has_remote():

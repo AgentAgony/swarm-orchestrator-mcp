@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "swarm-mcp"
-version = "3.2.0"
+version = "3.4.0"
 description = "Algorithmic Agentic Orchestrator with HippoRAG and Autonomous Git Worker"
 readme = "README.md"
 requires-python = ">=3.11"

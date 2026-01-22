@@ -25,7 +25,7 @@ class IntentConfig(BaseModel):
 
 class ToolchainConfig(BaseModel):
     """The capabilities map for the project."""
-    version: str = "2.0"
+    version: str = "3.4.0"
     stack_id: StackType
     actions: Dict[IntentType, IntentConfig] = Field(default_factory=dict)
     environment: Dict[str, str] = Field(default_factory=dict)
@@ -127,7 +127,7 @@ class ProjectProfile(BaseModel):
     """
     The Single Source of Truth for Project Swarm v3.0.
     """
-    schema_version: str = "2.0.0"
+    schema_version: str = "3.4.0"
     metadata: Dict[str, Any] = Field(default_factory=dict)
     
     # [New: Provenance]
