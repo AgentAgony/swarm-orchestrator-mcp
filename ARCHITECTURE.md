@@ -50,6 +50,10 @@ Located in `mcp_core/orchestrator_loop.py`.
 
 ### 4. Autonomous Git Engine
 Swarm v3.3 introduces a multi-role Git system designed for high-autonomy workflows.
+> [!WARNING]
+> **Status: 🚧 Experimental Skeleton**
+> The high-level roles are defined, but internal logic is currently stubbed with placeholders.
+
 - **Roles**:
     - **Feature Scout**: Scans codebase for expansion opportunities.
     - **Code Auditor**: Identifies bugs and documentation drift.
@@ -57,6 +61,19 @@ Swarm v3.3 introduces a multi-role Git system designed for high-autonomy workflo
     - **Branch Manager**: Manages merging and stacked PR chains.
     - **Project Lifecycle**: Orchestrates repository creation and bootstrapping.
 - **Integrations**: Uses `git-mcp` for local operations and `github-mcp` for remote PR management.
+
+## Component Maturity Matrix
+
+| Component | Maturity | Description |
+|-----------|----------|-------------|
+| **Orchestrator Protocol** | `✅ Stable` | Core state machine and event loop logic. |
+| **LLM Router** | `✅ Stable` | Gemini-first with robust provider cascading. |
+| **Search Engine** | `✅ Stable` | Hybrid Keyword code search (~1ms latency). |
+| **HippoRAG Retriever** | `✅ Stable` | Multi-language AST graph analysis (Python, JS, TS, Go, Rust). |
+| **Ochiai Debugger** | `✅ Stable` | Statistical fault localization with coverage integration. |
+| **Z3 Verifier** | `⚠️ Partial` | Core SMT solver integration complete; high-level generators missing. |
+| **Git Agent Roles** | `🚧 Skeleton` | Role definitions present; execution logic is stubbed. |
+| **Deliberation Tool** | `🚧 Stub` | Redirects to sequential thinking; algorithmic worker delegation unimplemented. |
 
 ## Data Flow
 

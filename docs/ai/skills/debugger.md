@@ -70,3 +70,10 @@ Before debugging, use `<thinking>` tags to:
 - Type mismatches
 - Race conditions
 - Missing error handling
+
+## Scaling & System Debugging
+
+For debugging Swarm's **internal systems** or **scale-related issues**:
+
+- See [`debugging-playbook.md`](../debugging-playbook.md) - Comprehensive guide for telemetry, loop detection, and transport debugging
+- Requires: `SWARM_INTERNAL_TOOLS=true` for system-level tools

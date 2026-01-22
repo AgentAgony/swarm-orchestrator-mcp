@@ -172,21 +172,51 @@ class BranchManagerRole(GitAgentRole):
     
     def _find_dependent_prs(self, merged_pr: Dict[str, Any], context: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Find PRs that depend on this one (stacked PRs)."""
-        # Placeholder: would analyze base branches
+        # Look for PRs whose base branch matches the merged PR's head branch
+        merged_branch = merged_pr.get('head', {}).get('ref', '')
+        
+        # Save dependency info to memory store for future analysis
+        memory_store = context.get('memory_store')
+        if memory_store:
+            memory_store.save_context(
+                session_id=context.get('session_id', 'branch_manager'),
+                context_type='pr_merged',
+                data={'branch': merged_branch, 'pr_number': merged_pr.get('number')}
+            )
+        
+        # In a real implementation, would query GitHub for PRs with base=merged_branch
         return []
     
     def _update_stacked_pr(self, pr: Dict[str, Any], github_client):
         """Update a stacked PR after its dependency merged."""
-        # Would trigger rebase or update base branch
-        pass
+        import logging
+        pr_number = pr.get('number')
+        logging.info(f"BranchManager: Would rebase/update stacked PR #{pr_number}")
+        
+        # In a real implementation:
+        # 1. Update the base branch to the new merged target
+        # 2. Trigger a rebase if needed
     
     def _update_plan_checkboxes(self, task: Any, context: Dict[str, Any]):
         """Update PLAN.md checkboxes if task corresponds to roadmap item."""
-        # Placeholder: would surgically edit PLAN.md
-        pass
+        import logging
+        task_id = task.task_id if hasattr(task, 'task_id') else 'unknown'
+        logging.info(f"BranchManager: Would update PLAN.md for task {task_id}")
+        
+        # Record provenance
+        collector = context.get('telemetry_collector')
+        if collector:
+            collector.record_provenance(
+                agent_id="branch_manager",
+                role="branch_manager",
+                action="pr_merged",
+                artifact_ref=task_id
+            )
     
     def _prune_branch(self, branch_name: str, github_client):
         """Delete merged feature branch."""
-        # This would call a hypothetical delete_branch in github_client
+        import logging
         logging.info(f"BranchManager: Pruning branch {branch_name}")
-        pass
+        
+        # In a real implementation, would call:
+        # github_client.delete_branch(owner, repo, branch_name)

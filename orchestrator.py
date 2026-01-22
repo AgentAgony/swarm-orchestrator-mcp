@@ -4,6 +4,16 @@ Swarm v3.0 - Python-Native Orchestrator CLI
 A unified CLI for project management, validation, and semantic search.
 """
 
+import sys
+import io
+
+# Force UTF-8 output encoding (prevents Windows CP1252 errors with emojis/Unicode)
+if sys.stdout.encoding != 'utf-8':
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+if sys.stderr.encoding != 'utf-8':
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
+
+
 import typer
 import os
 import subprocess
@@ -11,9 +21,19 @@ from typing import Optional
 from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
+from mcp_core.startup_checks import run_startup_checks
 
 app = typer.Typer(help="Swarm Orchestrator v3.4.0 CLI")
 console = Console()
+
+@app.callback()
+def main_callback():
+    """
+    Run startup checks before any command.
+    """
+    if not run_startup_checks():
+        console.print("[bold red]❌ Critical startup checks failed. See logs.[/bold red]")
+        raise typer.Exit(code=1)
 
 
 @app.command()

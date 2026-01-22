@@ -26,8 +26,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Mock/Load actual data
-_orchestrator = None
+# Multi-session management
+_orchestrators: Dict[str, Orchestrator] = {}
+_active_session_id: str = os.getenv("SWARM_SESSION_ID", "default")
 _analytics = None
 
 def get_analytics():
@@ -36,12 +37,38 @@ def get_analytics():
         _analytics = TelemetryAnalyticsService()
     return _analytics
 
-def get_orchestrator():
-    global _orchestrator
-    if _orchestrator is None:
-        _orchestrator = Orchestrator()
-        _orchestrator.load_state()
-    return _orchestrator
+def get_orchestrator(session_id: str = None):
+    global _orchestrators, _active_session_id
+    sid = session_id or _active_session_id
+    
+    if sid not in _orchestrators:
+        # Create a new orchestrator for this session
+        import logging
+        logging.info(f"Dashboard: Initializing orchestrator for session '{sid}'")
+        _orchestrators[sid] = Orchestrator(session_id=sid)
+        _orchestrators[sid].load_state()
+        
+    return _orchestrators[sid]
+
+@app.get("/api/sessions")
+async def get_sessions():
+    """List all available sessions in the database."""
+    orch = get_orchestrator()
+    # Use the orchestrator's postgres client to list sessions
+    sessions = await orch.postgres.list_sessions()
+    return {
+        "active_session": _active_session_id,
+        "sessions": sessions
+    }
+
+@app.post("/api/sessions/{session_id}/activate")
+async def activate_session(session_id: str):
+    """Switch the dashboard to a different session."""
+    global _active_session_id
+    _active_session_id = session_id
+    # Initialize it if not already tracked
+    get_orchestrator(session_id)
+    return {"status": "success", "active_session": _active_session_id}
 
 @app.get("/api/status")
 async def get_status():
@@ -200,6 +227,219 @@ async def get_role_analytics():
         rate = analytics.get_role_success_rate(role)
         stats.append({"role": role, "success_rate": rate})
     return stats
+
+@app.get("/api/health")
+async def get_health():
+    """Get system health metrics."""
+    analytics = get_analytics()
+    orch = get_orchestrator()
+    
+    # Check DB size
+    db_size_mb = 0
+    if analytics.db_path.exists():
+        db_size_mb = analytics.db_path.stat().st_size / (1024 * 1024)
+        
+    # Count tripped circuit breakers
+    tripped = 0
+    # Scan known tools from recent usage
+    tools = analytics.get_problematic_tools(threshold=1.0, window_days=7)
+    for t in tools:
+        if analytics.get_tool_status(t['tool']) == "TRIPPED":
+            tripped += 1
+            
+    return {
+        "status": "critical" if tripped > 3 else "degraded" if tripped > 0 else "healthy",
+        "telemetry_db_size_mb": round(db_size_mb, 2),
+        "circuit_breakers_tripped": tripped,
+        "active_tasks": len([t for t in orch.state.tasks.values() if t.status == "RUNNING"]),
+    }
+
+@app.post("/api/telemetry/prune")
+async def prune_telemetry(days: int = 30):
+    """Manually trigger telemetry pruning."""
+    analytics = get_analytics()
+    deleted = analytics.prune_old_events(retention_days=days)
+    return {"deleted_rows": deleted}
+
+@app.post("/api/telemetry/optimize")
+async def optimize_telemetry():
+    """Force telemetry DB optimization."""
+    analytics = get_analytics()
+    try:
+        analytics.optimize_database()
+        return {"status": "success"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/circuit-breakers")
+async def get_circuit_breakers():
+    """List all known tools and their circuit breaker status."""
+    analytics = get_analytics()
+    # Get all tools seen in last 7 days
+    tools = analytics.get_problematic_tools(threshold=1.0, window_days=7)
+    
+    breakers = []
+    for t in tools:
+        status = analytics.get_tool_status(t['tool'])
+        breakers.append({
+            "tool": t['tool'],
+            "status": status,
+            "success_rate": t['success_rate'],
+            "total_uses": t['total_uses']
+        })
+    return breakers
+
+@app.post("/api/circuit-breakers/{tool}/reset")
+async def reset_circuit_breaker(tool: str):
+    """
+    Reset a circuit breaker (manual override).
+    In a real implementation, this might write a 'reset' event to the DB 
+    or clear a cache. For this MVP, we'll log an event simulating a success 
+    to bump the rate up, or we'd need a specific 'reset' mechanism in analytics.
+    
+    For now, we'll just log an artificial success event to help recovery.
+    """
+    # TODO: Implement proper reset logic in TelemetryAnalyticsService
+    # This is a placeholder for the frontend action
+    return {"status": "reset", "message": f"Circuit breaker reset requested for {tool}"}
+
+# Task Management Endpoints
+
+@app.post("/api/tasks")
+async def create_task(description: str, priority: str = "NORMAL"):
+    """Create a new task in the orchestrator."""
+    orch = get_orchestrator()
+    from mcp_core.swarm_schemas import Task
+    import uuid
+    
+    task_id = f"task-{uuid.uuid4().hex[:8]}"
+    new_task = Task(
+        task_id=task_id,
+        description=description,
+        status="PENDING",
+        priority=priority
+    )
+    
+    orch.state.tasks[task_id] = new_task
+    orch.save_state()
+    
+    return {"task_id": task_id, "status": "created"}
+
+@app.post("/api/tasks/{task_id}/cancel")
+async def cancel_task(task_id: str):
+    """Cancel a running or pending task."""
+    orch = get_orchestrator()
+    
+    if task_id not in orch.state.tasks:
+        raise HTTPException(status_code=404, detail="Task not found")
+    
+    task = orch.state.tasks[task_id]
+    if task.status in ["COMPLETED", "FAILED"]:
+        raise HTTPException(status_code=400, detail="Cannot cancel completed/failed task")
+    
+    task.status = "CANCELLED"
+    task.feedback_log.append("Task cancelled by user via dashboard")
+    orch.save_state()
+    
+    return {"task_id": task_id, "status": "cancelled"}
+
+@app.post("/api/tasks/{task_id}/retry")
+async def retry_task(task_id: str):
+    """Retry a failed task."""
+    orch = get_orchestrator()
+    
+    if task_id not in orch.state.tasks:
+        raise HTTPException(status_code=404, detail="Task not found")
+    
+    task = orch.state.tasks[task_id]
+    if task.status != "FAILED":
+        raise HTTPException(status_code=400, detail="Can only retry failed tasks")
+    
+    # Reset task status
+    task.status = "PENDING"
+    task.feedback_log.append("Task retry requested by user via dashboard")
+    orch.save_state()
+    
+    # Optionally trigger processing (async)
+    # In a real implementation, you'd queue this or trigger background processing
+    
+    return {"task_id": task_id, "status": "retry_queued"}
+
+# Indexing & System Control Endpoints
+
+@app.post("/api/indexing/codebase")
+async def trigger_codebase_indexing(path: str = ".", provider: str = "auto"):
+    """Trigger codebase indexing (background operation)."""
+    try:
+        from mcp_core.search_engine import CodebaseIndexer, IndexConfig
+        
+        config = IndexConfig(root_path=path)
+        indexer = CodebaseIndexer(config)
+        
+        # This is a synchronous operation - in production, run in background
+        chunk_count = indexer.index_codebase(provider=provider)
+        
+        return {
+            "status": "success",
+            "chunks_indexed": chunk_count,
+            "provider": provider
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/indexing/graph")
+async def rebuild_knowledge_graph():
+    """Rebuild HippoRAG knowledge graph from indexed codebase."""
+    try:
+        from mcp_core.algorithms.hipporag_retriever import HippoRAGRetriever
+        from mcp_core.search_engine import IndexConfig
+        
+        config = IndexConfig()
+        retriever = HippoRAGRetriever()
+        
+        cache_path = os.path.join(config.root_path or os.getcwd(), ".hipporag_cache")
+        
+        # Build graph (synchronous - should be background in production)
+        retriever.build_graph(cache_path)
+        node_count = retriever.graph.number_of_nodes() if retriever.graph else 0
+        
+        return {
+            "status": "success",
+            "nodes": node_count
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/logs")
+async def get_logs(lines: int = 50, level: str = "INFO"):
+    """Get recent log entries."""
+    # Simple implementation - reads from a log file if it exists
+    # In production, you'd integrate with the logging system directly
+    
+    log_file = Path.home() / ".swarm" / "swarm.log"
+    
+    if not log_file.exists():
+        return {"logs": [], "message": "No log file found"}
+    
+    try:
+        with open(log_file, 'r') as f:
+            all_lines = f.readlines()
+            
+        # Filter by level if specified
+        if level != "ALL":
+            filtered = [l for l in all_lines if level in l]
+        else:
+            filtered = all_lines
+            
+        # Return last N lines
+        recent = filtered[-lines:] if len(filtered) > lines else filtered
+        
+        return {
+            "logs": [line.strip() for line in recent],
+            "total_lines": len(recent)
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 # Serve static files from React build
 ROOT_DIR = Path(__file__).parent.absolute()

@@ -6,6 +6,16 @@ This allows AI agents (like Claude Desktop, VSCode, etc.) to interact
 with the Swarm via the Model Context Protocol.
 """
 
+import sys
+import io
+
+# Force UTF-8 output encoding (prevents Windows CP1252 errors with emojis/Unicode)
+if sys.stdout.encoding != 'utf-8':
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+if sys.stderr.encoding != 'utf-8':
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
+
+
 import logging
 from typing import Optional
 from fastmcp import FastMCP
@@ -15,12 +25,21 @@ from mcp_core.orchestrator_loop import Orchestrator
 from mcp_core.swarm_schemas import Task
 from mcp_core.search_engine import CodebaseIndexer, HybridSearch, IndexConfig, get_embedding_provider
 from mcp_core.telemetry.collector import collector
+from mcp_core.startup_checks import run_startup_checks
 
 from pathlib import Path
 import os
 
+# [v3.4] Startup Checks
+if not run_startup_checks():
+    logging.critical("Startup checks failed. Exiting.")
+    sys.exit(1)
+
 # Dev build: Check for debug mode
 DEBUG_MODE = os.getenv("SWARM_DEBUG", "false").lower() == "true"
+
+# Tool scoping: Load internal tools for system maintenance
+ENABLE_INTERNAL_TOOLS = os.getenv("SWARM_INTERNAL_TOOLS", "false").lower() == "true"
 
 # Configure logging
 logging.basicConfig(
@@ -45,7 +64,14 @@ mcp = FastMCP("Swarm Orchestrator v3.4.0")
 # Load dynamic tools
 try:
     from mcp_core.tools.dynamic.loader import load_dynamic_tools
-    load_dynamic_tools(mcp)
+    
+    # Determine which scopes to load
+    tool_scopes = ['general']
+    if ENABLE_INTERNAL_TOOLS:
+        tool_scopes.append('internal')
+        logger.info("🔧 Internal tools enabled (SWARM_INTERNAL_TOOLS=true)")
+    
+    load_dynamic_tools(mcp, scopes=tool_scopes)
 except ImportError as e:
     logger.warning(f"Could not load dynamic tools: {e}")
 
@@ -110,6 +136,11 @@ def get_skill_security_audit() -> str:
 def get_skill_tool_creation() -> str:
     """Guide for creating new MCP tools."""
     return (_SERVER_DIR / "docs" / "ai" / "skills" / "tool-creation.md").read_text()
+
+@mcp.resource("swarm://skills/context-deliberator")
+def get_skill_context_deliberator() -> str:
+    """Context-aware deliberation using historical reasoning patterns."""
+    return (_SERVER_DIR / "docs" / "ai" / "skills" / "context-deliberator.md").read_text()
 
 # Human documentation
 @mcp.resource("swarm://docs/architecture")

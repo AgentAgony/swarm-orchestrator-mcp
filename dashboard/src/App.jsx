@@ -13,11 +13,14 @@ import Memory from './views/Memory';
 import Settings from './views/Settings';
 import Analytics from './views/Analytics';
 
+import HealthBadge from './components/HealthBadge';
+import SessionSwitcher from './components/SessionSwitcher';
 import { useSwarmData } from './hooks/useSwarmData';
 
 function App() {
   const [location] = useLocation();
   const { data: status } = useSwarmData('/status');
+  const { data: health } = useSwarmData('/health', 10000); // Poll health every 10s
   const isDemo = status?.status === 'demo';
 
   return (
@@ -30,6 +33,12 @@ function App() {
             <span className="logo-text">SWARM</span>
             {isDemo && <span style={{fontSize: '0.7rem', color: '#f59e0b', fontWeight: 'bold'}}>DEMO MODE</span>}
           </div>
+        </div>
+        
+        <HealthBadge health={health} />
+        
+        <div style={{ padding: '0 8px' }}>
+          <SessionSwitcher />
         </div>
         
         <ul className="nav-links">

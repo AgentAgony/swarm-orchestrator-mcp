@@ -8,23 +8,30 @@ Create a self-organizing, autonomous "Swarm" of AI agents capable of maintaining
 
 ## 🗺️ Roadmap & Status
 
-### Phase 3: Visibility & Control (Completed)
-- [x] **Dashboard UI**: React + Vite + Glassmorphism design with real-time task board.
-- [x] **Knowledge Graph Visualization**: Force-directed graph for HippoRAG context.
-- [x] **Memory Inspector**: Provenance log and stack identity.
-- [x] **Demo Mode**: Fallback mock data and architecture diagrams.
-- [x] **Autonomous Git Engine**: Multi-role system (Scout, Auditor, Triage, Manager, Lifecycle) with orchestrator integration.
+### Phase 3: The Sensor (Completed)
+- [x] **HippoRAG Retriever**: AST-based knowledge graph for deep context.
+- [x] **Ochiai Localizer**: Statistical fault localization (SBFL).
+- [x] **Polyglot Parsing**: Tree-sitter integration for Python, JS, TS, Go, Rust.
+- [x] **Hybrid Search**: Semantic + Keyword + Graph optimization.
 
 ### Phase 4: Dynamic Tooling & Debug (Completed)
 - [x] **Dynamic Tool Loader**: Load MCP tools at runtime.
 - [x] **Multiplexed Terminal**: Interactive terminal sessions.
 - [x] **Transport Debugger**: SSE/Stdio connectivity probes.
 
+### Phase 4.5: The Hands (Current Focus)
+- [ ] **Autonomous Git Engine (In Progress)**:
+    - [ ] `FeatureScout`: Proactive feature proposal (Skeleton).
+    - [ ] `CodeAuditor`: Automated quality control (Skeleton).
+    - [ ] `IssueTriage`: Backlog management (Skeleton).
+    - [ ] `BranchManager`: Stacked PR handling (Skeleton).
+- [ ] **Deliberation Tool**: Multi-step algorithmic reasoning (Stub).
+
 ### Phase 5: Future Horizons (Backlog)
-- [ ] **Multi-Language Support**: Add Tree-sitter parsers for Rust, Go, and Java to HippoRAG.
-- [ ] **Advanced Verification**: Integrate `Z3` SMT solver for formal logic verification.
 - [ ] **Collaborative Swarm**: Enable Swarm-to-Swarm communication protocol.
 - [ ] **Neural Bug Detection**: ML model on provenance logs to predict failure points.
+- [ ] **Advanced Verification**: High-level Z3 contract generators.
+- [ ] **Java Support**: Additional language parser.
 
 ## 🧠 Memory Bank Index
 *Keywords to use with `search_codebase` to retrieve specific memory details.*

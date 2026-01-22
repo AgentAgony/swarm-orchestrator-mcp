@@ -1,4 +1,13 @@
 services:
+  github-mcp:
+    image: ghcr.io/github/github-mcp-server
+    container_name: swarm-github-mcp
+    environment:
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+
   swarm:
     build: .
     container_name: swarm-mcp-server
@@ -13,8 +22,10 @@ services:
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - DATABASE_URL=postgresql://swarm:swarm-secret@db:5432/swarm_memory
+      - GITHUB_MCP_HOST=github-mcp
     depends_on:
       - db
+      - github-mcp
 
   db:
     image: ankane/pgvector:latest

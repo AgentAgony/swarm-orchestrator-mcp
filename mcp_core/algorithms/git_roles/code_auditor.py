@@ -97,47 +97,152 @@ class CodeAuditorRole(GitAgentRole):
     
     def _get_recent_files(self, hipporag, context: Dict[str, Any]) -> List[str]:
         """Get list of recently modified files from HippoRAG."""
-        # Placeholder: would query graph for recent modifications
-        return []
+        recent_files = []
+        
+        if hipporag and hasattr(hipporag, 'graph') and hipporag.graph:
+            # Query graph for file nodes
+            for node_id in hipporag.graph.nodes():
+                node_data = hipporag.graph.nodes[node_id]
+                file_path = node_data.get('file', '')
+                if file_path and file_path.endswith('.py') and file_path not in recent_files:
+                    recent_files.append(file_path)
+        
+        return recent_files[:20]  # Limit to 20 files
     
     def _get_files_from_git(self, context: Dict[str, Any]) -> List[str]:
         """Fallback: get modified files from git status."""
-        # Placeholder: would use GitWorker to get status
+        import subprocess
+        from pathlib import Path
+        
+        try:
+            result = subprocess.run(
+                ['git', 'diff', '--name-only', 'HEAD~5'],
+                capture_output=True,
+                text=True,
+                cwd=Path.cwd(),
+                timeout=10
+            )
+            if result.returncode == 0:
+                files = [f.strip() for f in result.stdout.splitlines() if f.endswith('.py')]
+                return files[:20]
+        except Exception:
+            pass
+        
         return []
     
     def _analyze_file(self, file_path: str, context: Dict[str, Any]) -> List[Dict[str, Any]]:
         """
         Analyze a single file for issues.
         
-        Checks for:
-        - Unused imports
-        - Dead code
-        - Outdated docstrings
-        - Security anti-patterns
-        
         Returns:
             List of finding dictionaries
         """
+        import re
+        from pathlib import Path
+        
         findings = []
         
-        # Placeholder: would integrate with linters, type checkers
-        # Example finding structure:
-        # {
-        #     "file": file_path,
-        #     "line": 42,
-        #     "severity": "high",
-        #     "category": "security",
-        #     "message": "Hardcoded credential detected"
-        # }
+        try:
+            file_obj = Path(file_path)
+            if not file_obj.exists():
+                return findings
+            
+            content = file_obj.read_text(encoding='utf-8', errors='ignore')
+            lines = content.splitlines()
+            
+            # Check for security anti-patterns
+            security_patterns = [
+                (r'password\s*=\s*["\'][^"\']+["\']', 'Hardcoded password', 'critical'),
+                (r'api_key\s*=\s*["\'][^"\']+["\']', 'Hardcoded API key', 'critical'),
+                (r'eval\s*\(', 'Use of eval()', 'high'),
+                (r'exec\s*\(', 'Use of exec()', 'high'),
+                (r'subprocess\.call.*shell\s*=\s*True', 'Shell injection risk', 'high'),
+            ]
+            
+            for i, line in enumerate(lines, 1):
+                for pattern, message, severity in security_patterns:
+                    if re.search(pattern, line, re.IGNORECASE):
+                        findings.append({
+                            "file": file_path,
+                            "line": i,
+                            "severity": severity,
+                            "category": "security",
+                            "message": message
+                        })
+            
+            # Check for TODO/FIXME (low severity)
+            for i, line in enumerate(lines, 1):
+                if re.search(r'#\s*(TODO|FIXME)', line, re.IGNORECASE):
+                    findings.append({
+                        "file": file_path,
+                        "line": i,
+                        "severity": "low",
+                        "category": "maintenance",
+                        "message": "TODO/FIXME comment found"
+                    })
+                    
+        except Exception as e:
+            findings.append({
+                "file": file_path,
+                "line": 0,
+                "severity": "medium",
+                "category": "error",
+                "message": f"Could not analyze: {str(e)}"
+            })
         
         return findings
     
     def _generate_report(self, findings: List[Dict[str, Any]], context: Dict[str, Any]) -> str:
         """Generate structured audit report for memory_bank."""
-        # Placeholder: would format findings into markdown report
-        return f"Code Audit Report: {len(findings)} findings"
+        from datetime import datetime
+        
+        critical = [f for f in findings if f.get('severity') == 'critical']
+        high = [f for f in findings if f.get('severity') == 'high']
+        medium = [f for f in findings if f.get('severity') == 'medium']
+        low = [f for f in findings if f.get('severity') == 'low']
+        
+        report = f"""# Code Audit Report
+**Generated**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+**Total Findings**: {len(findings)}
+
+## Summary
+- 🔴 Critical: {len(critical)}
+- 🟠 High: {len(high)}
+- 🟡 Medium: {len(medium)}
+- 🟢 Low: {len(low)}
+
+## Critical Issues
+"""
+        for f in critical[:5]:
+            report += f"- **{f['file']}:{f['line']}** - {f['message']}\n"
+        
+        # Save to memory_store if available
+        memory_store = context.get('memory_store')
+        if memory_store:
+            memory_store.save_context(
+                session_id=context.get('session_id', 'audit'),
+                context_type='audit_report',
+                data={'report': report, 'findings': findings}
+            )
+        
+        return report
     
     def _create_priority_tasks(self, findings: List[Dict[str, Any]], context: Dict[str, Any]) -> List[str]:
         """Create tasks for priority findings."""
-        # Placeholder: would insert into task_queue
-        return []
+        task_ids = []
+        
+        for finding in findings[:5]:  # Top 5 priority
+            task_id = f"AUDIT-{finding['file'].split('/')[-1]}-L{finding['line']}"
+            task_ids.append(task_id)
+            
+            # Log provenance
+            collector = context.get('telemetry_collector')
+            if collector:
+                collector.record_provenance(
+                    agent_id="code_auditor",
+                    role="code_auditor",
+                    action="issue_flagged",
+                    artifact_ref=finding['file']
+                )
+        
+        return task_ids

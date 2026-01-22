@@ -2,6 +2,7 @@ import React from 'react';
 import { Activity, ListChecks, Network, Clock } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import StatCard from '../components/StatCard';
+import CircuitBreakerWidget from '../components/CircuitBreakerWidget';
 import { useSwarmData } from '../hooks/useSwarmData';
 
 const Overview = () => {
@@ -25,6 +26,8 @@ const Overview = () => {
     <div className="page-content">
       <h1 className="gradient-text">Swarm Overview</h1>
       
+      <CircuitBreakerWidget />
+
       <div className="stats-grid">
         <StatCard 
           icon={Activity} 

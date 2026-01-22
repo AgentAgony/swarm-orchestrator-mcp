@@ -7,6 +7,7 @@ Actual Git operations are delegated to external Git/GitHub MCP servers.
 
 import re
 import logging
+import subprocess
 from pathlib import Path
 from dataclasses import dataclass
 from enum import Enum
@@ -63,33 +64,41 @@ class GitWorker:
             repo_path=str(self.repo_path)
         )
         
-        # Parse remote URL from .git/config
-        config_file = git_dir / "config"
-        if config_file.exists():
-            try:
-                content = config_file.read_text(encoding='utf-8')
+        # Use git config command for robust detection
+        try:
+            # Get Remote URL
+            result = subprocess.run(
+                ["git", "config", "--get", "remote.origin.url"],
+                cwd=self.repo_path,
+                capture_output=True,
+                text=True,
+                check=False
+            )
+            if result.returncode == 0:
+                url = result.stdout.strip()
+                config.remote_url = url
                 
-                # Extract remote URL
-                match = re.search(r'url\s*=\s*(.+)', content)
-                if match:
-                    url = match.group(1).strip()
-                    config.remote_url = url
-                    
-                    # Detect provider from URL
-                    if "github.com" in url:
-                        config.provider = GitProvider.GITHUB
-                    elif "gitlab.com" in url:
-                        config.provider = GitProvider.GITLAB
-                    elif "bitbucket.org" in url:
-                        config.provider = GitProvider.BITBUCKET
-                
-                # Detect default branch (if specified)
-                branch_match = re.search(r'branch\s+"([^"]+)"', content)
-                if branch_match:
-                    config.default_branch = branch_match.group(1)
-                    
-            except Exception as e:
-                logger.warning(f"Could not parse git config: {e}")
+                # Detect provider
+                if "github.com" in url:
+                    config.provider = GitProvider.GITHUB
+                elif "gitlab.com" in url:
+                    config.provider = GitProvider.GITLAB
+                elif "bitbucket.org" in url:
+                    config.provider = GitProvider.BITBUCKET
+
+            # Get Default Branch
+            result = subprocess.run(
+                ["git", "branch", "--show-current"],
+                cwd=self.repo_path,
+                capture_output=True,
+                text=True,
+                check=False
+            )
+            if result.returncode == 0:
+                config.default_branch = result.stdout.strip()
+
+        except Exception as e:
+            logger.warning(f"Git config detection failed: {e}")
         
         logger.info(f"Git detected: {config.provider.value}, remote: {config.remote_url or 'none'}")
         return config

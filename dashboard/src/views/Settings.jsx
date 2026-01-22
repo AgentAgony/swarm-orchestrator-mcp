@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Settings as SettingsIcon, Bell, Shield, Palette, Layout, Save } from 'lucide-react';
+import QuickActionsPanel from '../components/QuickActionsPanel';
+import { IndexingPanel, LogViewer } from '../components/SystemControls';
 
 const Settings = () => {
   return (
@@ -89,6 +91,10 @@ const Settings = () => {
           </div>
         </div>
       </div>
+
+      <QuickActionsPanel />
+      <IndexingPanel />
+      <LogViewer />
 
       <div style={{ marginTop: '32px', display: 'flex', justifyContent: 'flex-end' }}>
         <button 

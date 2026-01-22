@@ -146,18 +146,50 @@ class IssueTriageRole(GitAgentRole):
     
     def _find_related_code(self, title: str, body: str, hipporag) -> List[str]:
         """Find code related to the issue using HippoRAG."""
-        # Placeholder: would query graph for relevant modules
-        return []
+        related = []
+        
+        if hipporag and hasattr(hipporag, 'graph') and hipporag.graph:
+            # Search for keywords from title/body in graph nodes
+            keywords = (title + ' ' + body).lower().split()
+            
+            for node_id in hipporag.graph.nodes():
+                node_str = str(node_id).lower()
+                for keyword in keywords[:5]:  # Check first 5 keywords
+                    if len(keyword) > 3 and keyword in node_str:
+                        file_path = hipporag.graph.nodes[node_id].get('file', '')
+                        if file_path and file_path not in related:
+                            related.append(file_path)
+                            break
+        
+        return related[:5]  # Limit to 5 related files
     
     def _estimate_impact(self, issue: Dict[str, Any], related_code: List[str]) -> str:
         """Estimate impact level (high/medium/low)."""
-        # Placeholder: would analyze affected systems
-        return "medium"
+        labels = [l.get('name', '').lower() for l in issue.get('labels', [])]
+        title = issue.get('title', '').lower()
+        
+        # High impact indicators
+        if 'critical' in labels or 'security' in labels or 'breaking' in title:
+            return "high"
+        # Many related files = higher impact
+        elif len(related_code) > 3:
+            return "high"
+        elif len(related_code) > 1 or 'enhancement' in labels:
+            return "medium"
+        else:
+            return "low"
     
     def _estimate_effort(self, issue: Dict[str, Any], related_code: List[str]) -> str:
         """Estimate effort level (high/medium/low)."""
-        # Placeholder: would analyze complexity
-        return "medium"
+        body = issue.get('body', '')
+        
+        # Longer description = more complex
+        if len(body) > 1000 or len(related_code) > 3:
+            return "high"
+        elif len(body) > 300 or len(related_code) > 1:
+            return "medium"
+        else:
+            return "low"
     
     def _calculate_priority(self, impact: str, effort: str) -> str:
         """
@@ -178,22 +210,62 @@ class IssueTriageRole(GitAgentRole):
     
     def _suggest_labels(self, issue: Dict[str, Any], related_code: List[str]) -> List[str]:
         """Suggest appropriate labels for the issue."""
-        # Placeholder: would analyze issue type and scope
-        return []
+        labels = []
+        title = issue.get('title', '').lower()
+        body = issue.get('body', '').lower()
+        
+        # Auto-suggest labels based on content
+        if 'bug' in title or 'fix' in title or 'broken' in body:
+            labels.append('bug')
+        if 'feature' in title or 'add' in title or 'new' in title:
+            labels.append('enhancement')
+        if 'doc' in title or 'readme' in body:
+            labels.append('documentation')
+        if any('test' in f for f in related_code):
+            labels.append('testing')
+        
+        return labels
     
     def _suggest_milestone(self, priority: str, context: Dict[str, Any]) -> str:
         """Suggest appropriate milestone based on priority."""
-        # Placeholder: would map to active milestones
-        return "Backlog"
+        if priority == "P0":
+            return "v4.0-hotfix"
+        elif priority == "P1":
+            return "v4.0"
+        elif priority == "P2":
+            return "v4.1"
+        else:
+            return "Backlog"
     
     def _update_issue_metadata(self, issue: Dict[str, Any], triage: Dict[str, Any], github_client):
         """Update issue labels and milestone on GitHub."""
-        # Placeholder for real update call - GitHub MCP would need add_labels_to_issue etc.
-        # For now, we'll log the intention
-        logging.info(f"Triage: Would update Issue #{issue.get('number')} with labels {triage['labels']} and milestone {triage['milestone']}")
-        pass
+        import logging
+        # Log the triage decision
+        logging.info(f"Triage: Issue #{issue.get('number')} -> {triage['priority']} (labels: {triage['labels']})")
+        
+        # Record provenance
+        # Note: Actual label updates would use github_client.add_labels_to_issue if available
     
     def _create_tasks_from_issues(self, triaged_issues: List[Dict[str, Any]], context: Dict[str, Any]) -> List[str]:
         """Create tasks in task_queue from triaged issues."""
-        # Placeholder: would insert into project_profile.tasks
-        return []
+        task_ids = []
+        
+        # Sort by priority (P0 first)
+        sorted_issues = sorted(triaged_issues, key=lambda x: x['priority'])
+        
+        for triage in sorted_issues:
+            issue_id = triage['issue_id']
+            priority = triage['priority']
+            task_id = f"TRIAGE-{issue_id}-{priority}"
+            task_ids.append(task_id)
+            
+            # Save to memory store
+            memory_store = context.get('memory_store')
+            if memory_store:
+                memory_store.save_context(
+                    session_id=context.get('session_id', 'triage'),
+                    context_type='triaged_issue',
+                    data=triage
+                )
+        
+        return task_ids

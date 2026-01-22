@@ -85,12 +85,11 @@ class VersionManager:
         )
         
         # 3. Update swarm_schemas.py
-        # Update ToolchainConfig version
-        # Pattern: version: str = "X.Y.Z"
+        # Universal SemVer pattern: supports "X.Y", "X.Y.Z", "X.Y.Z-beta", etc.
         schemas_path = self.root / "mcp_core" / "swarm_schemas.py"
         self._update_file(
             schemas_path,
-            r'version: str = "\d+\.\d+(\.\d+)?"',
+            r'version: str = "\d+\.\d+(\.\d+)?(-[\w.]+)?"',
             f'version: str = "{current_ver}"'
         )
         # Update ProjectProfile schema_version (if we decide to sync it)

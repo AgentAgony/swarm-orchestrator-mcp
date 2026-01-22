@@ -118,10 +118,10 @@ flowchart LR
 <td width="50%">
 
 ### 🧠 **Algorithmic Intelligence**
-- **Autonomous Git Engine**: Multi-role autonomous repository management.
-- **HippoRAG**: AST-based knowledge graphs with Personalized PageRank.
-- **Ochiai SBFL**: Statistical fault localization for debugging.
-- **Z3 Verifier**: Formal verification using SMT solving.
+- **Autonomous Git Engine**: `🚧 Experimental (Skeleton)` Multi-role autonomous repository management.
+- **HippoRAG**: `✅ Production Ready` AST-based knowledge graphs with Personalized PageRank.
+- **Ochiai SBFL**: `✅ Production Ready` Statistical fault localization for debugging.
+- **Z3 Verifier**: `⚠️ Partial (Core only)` Formal verification using SMT solving.
 
 
 </td>
@@ -198,6 +198,19 @@ swarm status
 > **First time setup?** Set your `GEMINI_API_KEY` in `.env` for best performance. Swarm supports multiple embedding providers (Gemini, OpenAI, local).
 
 
+## ✨ Implementation Status
+
+| Component | Status | Notes |
+|-----------|--------|-------|
+| **Core Infrastructure** | `✅ Stable` | LLM Router, FastMCP Server, Logging |
+| **Search Engine** | `✅ Stable` | Hybrid Keyword/Semantic Search |
+| **HippoRAG** | `✅ Stable` | Context Retrieval & Graph Building |
+| **Language Parsers** | `✅ Stable` | Python, JS, TS, Go, Rust |
+| **Ochiai SBFL** | `✅ Stable` | Fault Localization |
+| **Z3 Verifier** | `⚠️ Partial` | Core integration done, logic generators missing |
+| **Git Agent Roles** | `🚧 Skeleton` | High-level roles defined, internal logic stubbed |
+| **Deliberation** | `🚧 Stub` | Redirects to Sequential Thinking |
+
 ## ✨ Features Deep Dive
 
 ### 🧠 External Memory Integration
@@ -243,7 +256,8 @@ retrieve_context("user authentication flow")
 - 🐍 **Python** (built-in `ast` module)
 - 📜 **JavaScript/JSX** (via Tree-sitter)
 - 🔷 **TypeScript/TSX** (via Tree-sitter)
-- 🔜 **Go, Rust, Java** (plugin system ready)
+- ✅ **Go, Rust** (via Tree-sitter)
+- 🔜 **Java** (plugin system ready)
 
 ---
 
