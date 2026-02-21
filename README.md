@@ -13,11 +13,9 @@
 
 [![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://docker.com)
-[![GHCR](https://img.shields.io/badge/GHCR-Pull-blue?style=for-the-badge&logo=github&logoColor=white)](https://github.com/orgs/${{ github.repository_owner }}/packages)
 [![MCP](https://img.shields.io/badge/MCP-Compatible-00ADD8?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyIDJMMiA3TDEyIDEyTDIyIDdMMTIgMloiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik0yIDEyTDEyIDE3TDIyIDEyIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiLz4KPC9zdmc+)](https://modelcontextprotocol.io)
 [![License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
 
-[![MCP Protocol](https://img.shields.io/badge/MCP-Protocol-00ADD8?style=flat-square)](https://modelcontextprotocol.io)
 [![HippoRAG Paper](https://img.shields.io/badge/HippoRAG-Research-9b59b6?style=flat-square)](https://arxiv.org/)
 [![Ochiai SBFL](https://img.shields.io/badge/SBFL-Ochiai-e74c3c?style=flat-square)](https://en.wikipedia.org/wiki/Fault_localization)
 
@@ -461,5 +459,6 @@ MIT License - See [LICENSE](LICENSE) for details.
 </div>
 
 </div>
+
 
 
