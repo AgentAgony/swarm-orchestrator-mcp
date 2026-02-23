@@ -1,7 +1,7 @@
 <div align="center">
   <img src="docs/images/swarm_logo.png" alt="Swarm Logo" width="200"/>
 
-  # Swarm v3.4
+  # Vexorbis Swarm v3.4
 
   ### Turn your IDE into an Autonomous Engineering Team
 
@@ -14,9 +14,9 @@
 
 ---
 
-## What is Swarm?
+## What is Vexorbis Swarm?
 
-**Swarm** is a Model Context Protocol (MCP) server that extends AI coding assistants like Antigravity, Cursor, and Claude Desktop with **deterministic, algorithmic capabilities**. Instead of relying purely on LLM reasoning, Swarm uses specialized workers—code analysis, fault localization, formal verification, and autonomous Git management—to deliver faster, more reliable results.
+**Vexorbis Swarm** is a Model Context Protocol (MCP) server that extends AI coding assistants like Antigravity, Cursor, and Claude Desktop with **deterministic, algorithmic capabilities**. Instead of relying purely on LLM reasoning, Vexorbis Swarm uses specialized workers—code analysis, fault localization, formal verification, and autonomous Git management—to deliver faster, more reliable results.
 
 ---
 
@@ -42,7 +42,7 @@
 > **Let the agents handle the grunt work.**
 
 *   **Git Agent Roles**: Specialized workers (Architect, Engineer, Auditor) that plan, commit, and create PRs.
-*   **Dynamic Toolsmith**: Swarm can design and register new tools at runtime.
+*   **Dynamic Toolsmith**: Vexorbis Swarm can design and register new tools at runtime.
 *   **Markdown-Driven**: Control the workforce from a `PLAN.md` file.
 
 </td>
@@ -74,14 +74,14 @@ docker compose up -d --build
 
 ### Configure Your IDE
 
-Add the MCP server to your IDE's configuration (e.g., `~/.antigravity/settings.json`):
+Add the MCP server to your IDE's configuration (e.g., `~/.gemini/antigravity/mcp_config.json` on Windows):
 
 ```json
 {
   "mcpServers": {
     "swarm-orchestrator": {
       "command": "docker",
-      "args": ["exec", "-i", "swarm-mcp-server", "fastmcp", "run", "server.py"]
+      "args": ["exec", "-i", "swarm-mcp-server", "python", "server.py"]
     }
   }
 }
@@ -110,7 +110,7 @@ flowchart LR
 
 ## 🔄 Antigravity Sync
 
-Swarm synchronizes with a human-readable `PLAN.md` file, enabling a true co-pilot workflow.
+Vexorbis Swarm synchronizes with a human-readable `PLAN.md` file, enabling a true co-pilot workflow.
 
 **From Your Markdown:**
 ```markdown
@@ -120,7 +120,7 @@ Swarm synchronizes with a human-readable `PLAN.md` file, enabling a true co-pilo
 - [ ] Add login tests @engineer
 ```
 
-**Swarm interprets:**
+**Vexorbis Swarm interprets:**
 *   `[ ]` → Task is `PENDING`. Agent picks it up.
 *   `@architect` → Assigns to the Architect worker.
 *   `Context:` → Pre-loads `auth.py` into the agent's window.

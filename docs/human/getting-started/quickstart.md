@@ -1,8 +1,23 @@
 # Quick Start
 
-Get productive with Swarm in 5 minutes.
+Get productive with Vexorbis Swarm in 5 minutes.
 
-## Step 1: Search Your Codebase
+## Step 1: Configure MCP Settings
+
+Before using Vexorbis Swarm, ensure it's added to your IDE's MCP config (e.g., `mcp_config.json` for Antigravity):
+
+```json
+{
+  "mcpServers": {
+    "swarm-orchestrator": {
+      "command": "docker",
+      "args": ["exec", "-i", "swarm-mcp-server", "python", "server.py"]
+    }
+  }
+}
+```
+
+## Step 2: Search Your Codebase
 
 Try the hybrid search tool:
 
@@ -12,7 +27,7 @@ Find all functions that handle user authentication
 
 **What happens:** Swarm uses HippoRAG's AST graph to find semantically related code, not just text matches.
 
-## Step 2: Create a PLAN.md
+## Step 3: Create a PLAN.md
 
 Create a `PLAN.md` file in your project root:
 
@@ -27,7 +42,7 @@ Create a `PLAN.md` file in your project root:
 
 **What happens:** Swarm reads this file and treats each `[ ]` item as a pending task.
 
-## Step 3: Let Swarm Work
+## Step 4: Let Swarm Work
 
 Tell your AI assistant:
 
@@ -42,7 +57,7 @@ Process the next pending task from PLAN.md
 4. Executes the task
 5. Marks it `[x]` when complete
 
-## Step 4: Auto-Commit Changes
+## Step 5: Auto-Commit Changes
 
 If you have uncommitted changes, Swarm can commit them:
 
@@ -52,7 +67,7 @@ Commit my changes with an appropriate message
 
 **What happens:** The Git Agent generates a conventional commit message and stages your files.
 
-## Step 5: Debug a Failing Test
+## Step 6: Debug a Failing Test
 
 When tests fail:
 

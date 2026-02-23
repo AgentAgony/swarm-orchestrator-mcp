@@ -1,6 +1,6 @@
 # Installation
 
-Get Swarm up and running in minutes.
+Get Vexorbis Swarm up and running in minutes.
 
 ## Prerequisites
 
@@ -61,14 +61,14 @@ Add Swarm to your IDE's MCP configuration.
 
 ### Antigravity
 
-Edit `~/.antigravity/settings.json`:
+Edit your `mcp_config.json` (e.g. `~/.gemini/antigravity/mcp_config.json` on Windows):
 
 ```json
 {
   "mcpServers": {
     "swarm-orchestrator": {
       "command": "docker",
-      "args": ["exec", "-i", "swarm-mcp-server", "fastmcp", "run", "server.py"]
+      "args": ["exec", "-i", "swarm-mcp-server", "python", "server.py"]
     }
   }
 }
@@ -80,10 +80,10 @@ Edit `~/.cursor/mcp.json`:
 
 ```json
 {
-  "servers": {
-    "swarm": {
+  "mcpServers": {
+    "swarm-orchestrator": {
       "command": "docker",
-      "args": ["exec", "-i", "swarm-mcp-server", "fastmcp", "run", "server.py"]
+      "args": ["exec", "-i", "swarm-mcp-server", "python", "server.py"]
     }
   }
 }
