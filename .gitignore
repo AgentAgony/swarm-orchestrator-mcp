@@ -7,7 +7,6 @@ __pycache__/
 dist/
 build/
 *.egg
-.project_profile.json
 
 # Environment
 .env
@@ -49,6 +48,7 @@ benchmark_ide_vs_mcp.py
 .hipporag_cache
 collection_log.txt
 logs.txt
+project_profile.json
 
 # Temporary Files (scripts, status dumps)
 *.tmp
