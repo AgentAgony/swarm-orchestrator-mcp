@@ -22,8 +22,7 @@
 
 ## Demo
 
-[![Watch the demo](docs/images/swarm_logo.png)](https://vimeo.com/1158005784)
-
+https://vimeo.com/1158005784
 
 ## ✨ The Three Pillars
 
@@ -176,6 +175,7 @@ export SWARM_VERBOSE_TELEMETRY=true
 ## 📜 License
 
 MIT License - See [LICENSE](LICENSE) for details.
+
 
 
 
