@@ -1,7 +1,9 @@
+> **⚠️ DEPRECATED:** AI moves fast. This project is no longer being updated. We are migrating away from MCP and adapting to the latest tools.
+
 <div align="center">
   <img src="docs/images/swarm_logo.png" alt="Swarm Logo" width="200"/>
 
-  # Swarm v3.4
+  # Swarm Orchestrator v3.4
 
   ### Turn your IDE into an Autonomous Engineering Team
 
@@ -16,9 +18,13 @@
 
 ## What is Swarm?
 
-**Swarm** is a Model Context Protocol (MCP) server that extends AI coding assistants like Antigravity, Cursor, and Claude Desktop with **deterministic, algorithmic capabilities**. Instead of relying purely on LLM reasoning, Swarm uses specialized workers—code analysis, fault localization, formal verification, and autonomous Git management—to deliver faster, more reliable results.
+**Swarm Orchestrator** is a Model Context Protocol (MCP) server that extends AI coding assistants like Antigravity, Cursor, and Claude Desktop with **deterministic, algorithmic capabilities**. Instead of relying purely on LLM reasoning, Vexorbis Swarm uses specialized workers—code analysis, fault localization, formal verification, and autonomous Git management—to deliver faster, more reliable results.
 
 ---
+
+## Demo
+
+https://vimeo.com/1158005784
 
 ## ✨ The Three Pillars
 
@@ -42,7 +48,7 @@
 > **Let the agents handle the grunt work.**
 
 *   **Git Agent Roles**: Specialized workers (Architect, Engineer, Auditor) that plan, commit, and create PRs.
-*   **Dynamic Toolsmith**: Swarm can design and register new tools at runtime.
+*   **Dynamic Toolsmith**: Vexorbis Swarm can design and register new tools at runtime.
 *   **Markdown-Driven**: Control the workforce from a `PLAN.md` file.
 
 </td>
@@ -74,14 +80,14 @@ docker compose up -d --build
 
 ### Configure Your IDE
 
-Add the MCP server to your IDE's configuration (e.g., `~/.antigravity/settings.json`):
+Add the MCP server to your IDE's configuration (e.g., `~/.gemini/antigravity/mcp_config.json` on Windows):
 
 ```json
 {
   "mcpServers": {
     "swarm-orchestrator": {
       "command": "docker",
-      "args": ["exec", "-i", "swarm-mcp-server", "fastmcp", "run", "server.py"]
+      "args": ["exec", "-i", "swarm-mcp-server", "python", "server.py"]
     }
   }
 }
@@ -110,7 +116,7 @@ flowchart LR
 
 ## 🔄 Antigravity Sync
 
-Swarm synchronizes with a human-readable `PLAN.md` file, enabling a true co-pilot workflow.
+Vexorbis Swarm synchronizes with a human-readable `PLAN.md` file, enabling a true co-pilot workflow.
 
 **From Your Markdown:**
 ```markdown
@@ -120,7 +126,7 @@ Swarm synchronizes with a human-readable `PLAN.md` file, enabling a true co-pilo
 - [ ] Add login tests @engineer
 ```
 
-**Swarm interprets:**
+**Vexorbis Swarm interprets:**
 *   `[ ]` → Task is `PENDING`. Agent picks it up.
 *   `@architect` → Assigns to the Architect worker.
 *   `Context:` → Pre-loads `auth.py` into the agent's window.
@@ -134,10 +140,10 @@ Swarm synchronizes with a human-readable `PLAN.md` file, enabling a true co-pilo
 
 | Getting Started | Concepts | Guides | Reference |
 |-----------------|----------|--------|-----------|
-| [Introduction](new_docs/getting-started/introduction.md) | [Architecture](new_docs/concepts/architecture.md) | [PLAN.md Syntax](new_docs/guides/plan-syntax.md) | [Tools](new_docs/reference/tools.md) |
-| [Installation](new_docs/getting-started/installation.md) | [Decision Logic](new_docs/concepts/decision-logic.md) | [Git Workflows](new_docs/guides/git-workflows.md) | [Configuration](new_docs/reference/configuration.md) |
-| [Quick Start](new_docs/getting-started/quickstart.md) | [Three Pillars](new_docs/concepts/three-pillars.md) | [Debugging](new_docs/guides/debugging.md) | [API Reference](new_docs/reference/api.md) |
-| | | [Custom Tools](new_docs/guides/custom-tools.md) | [Troubleshooting](new_docs/reference/troubleshooting.md) |
+| [Introduction](docs/human/getting-started/introduction.md) | [Architecture](docs/human/concepts/architecture.md) | [PLAN.md Syntax](docs/human/guides/plan-syntax.md) | [Tools](docs/human/reference/tools.md) |
+| [Installation](docs/human/getting-started/installation.md) | [Decision Logic](docs/human/concepts/decision-logic.md) | [Git Workflows](docs/human/guides/git-workflows.md) | [Configuration](docs/human/reference/configuration.md) |
+| [Quick Start](docs/human/getting-started/quickstart.md) | [Three Pillars](docs/human/concepts/three-pillars.md) | [Debugging](docs/human/guides/debugging.md) | [API Reference](docs/human/reference/api.md) |
+| | | [Custom Tools](docs/human/guides/custom-tools.md) | [Troubleshooting](docs/human/reference/troubleshooting.md) |
 
 ---
 
@@ -171,3 +177,11 @@ export SWARM_VERBOSE_TELEMETRY=true
 ## 📜 License
 
 MIT License - See [LICENSE](LICENSE) for details.
+
+
+
+
+
+
+
+
