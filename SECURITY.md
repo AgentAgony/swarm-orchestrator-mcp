@@ -77,24 +77,6 @@ For production deployments, use:
 - ❌ Log environment variables
 - ❌ Embed secrets in Docker images
 
-## Container Security
 
-### Image Verification
-
-Published images are signed with Cosign:
-
-```bash
-cosign verify ghcr.io/AGENTagony/swarm:latest
-```
-
-### Security Scanning
-
-- **Trivy**: Runs on every push to `main`
-- **SBOM**: Generated for each image build
-- **Dependabot**: Monitors for vulnerable dependencies
-
-### Runtime Hardening
-
-See [Runtime Monitoring Guide](docs/security/runtime-monitoring.md) for Falco setup.
 
 
